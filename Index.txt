@@ -1,0 +1,348 @@
+Indexes are special lookup tables that the database search engine can use to speed up data retrieval.
+Simply put, an index is a pointer to data in a table. An index in a database is very similar to an index in the back of a book.
+For example, if you want to reference all pages in a book that discusses a certain topic, 
+you have to first refer to the index, which lists all topics alphabetically and then refer to one or more specific page numbers.
+
+An index helps to speed up SELECT queries and WHERE clauses; however, it slows down data input
+
+PostgreSQL provides several index types: 
+B-tree, Hash, GiST and GIN.
+Each index type uses a different algorithm that is best suited to different types of queries. 
+By default, the CREATE INDEX command creates B-tree indexes, which fit the most common situations.
+
+
+----------------------B-Tree Index------------------------
+
+B-trees can handle equality and range queries on data.
+Postgres will consider using a B-tree index whenever an indexed column is involved in a comparison using one of these operators:
+(<, <=, =, >=, >)
+
+They can operate against all datatypes, and can also be used to retrieve NULL values. 
+B-tree indexes can also be used to retrieve data in sorted order.
+
+create table part (
+id serial primary key, 
+partno varchar(20) NOT NULL UNIQUE, 
+partname varchar(80) NOT NULL, 
+partdescr text,
+machine_id int NOT NULL
+);
+
+testdb=# \d part
+                                  Table "public.part"
+   Column       |         Type          |                     Modifiers                     
+------------+-----------------------+---------------------------------------------------
+ id         | integer                 | not null default nextval('part_id_seq'::regclass)
+ partno     | character varying(20)| not null
+ partname       | character varying(80)| not null
+ partdescr      | text                    |
+ machine_id     | integer                 | not null
+Indexes:
+    "part_pkey" PRIMARY KEY, btree (id)
+    "part_partno_key" UNIQUE CONSTRAINT, btree (partno)
+	
+testdb=# with populate_qry as (select gs from generate_series(1,1000000) as gs )
+insert into part (partno, partname,machine_id) SELECT 'PNo:'||gs, 'Part '||gs,0 from populate_qry;
+INSERT 0 1000000
+
+
+testdb=# select * from part where id=100000;
+   id   |   partno   |  partname   | partdescr | machine_id 
+--------+------------+-------------+-----------+------------
+ 100000 | PNo:100000 | Part 100000 |           |          0
+(1 row)
+
+Time: 1.042 ms
+testdb=# select * from part where partno='PNo:100000';
+   id   |   partno   |  partname   | partdescr | machine_id 
+--------+------------+-------------+-----------+------------
+ 100000 | PNo:100000 | Part 100000 |           |          0
+(1 row)
+
+Time: 0.920 ms
+
+*****Without Index
+
+testdb=# select * from part where partname='Part 100000';
+   id   |   partno   |  partname   | partdescr | machine_id 
+--------+------------+-------------+-----------+------------
+ 100000 | PNo:100000 | Part 100000 |           |          0
+(1 row)
+
+Time: 124.284 ms
+
+testdb=# explain select * from part where partname='Part 100000';
+                       QUERY PLAN                        
+---------------------------------------------------------
+ Seq Scan on part  (cost=0.00..19853.00 rows=1 width=61)
+   Filter: ((partname)::text = 'Part 100000'::text)
+(2 rows)
+
+Time: 1.297 ms
+
+
+*****With Index
+
+testdb=# create index part_partname_idx ON part(partname);
+CREATE INDEX
+Time: 5183.763 ms
+
+testdb=# select * from part where partname='Part 100000';
+   id   |   partno   |  partname   | partdescr | machine_id 
+--------+------------+-------------+-----------+------------
+ 100000 | PNo:100000 | Part 100000 |           |          0
+(1 row)
+
+Time: 1.153 ms
+
+testdb=# explain  select * from part where partname='Part 100000';
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Index Scan using part_partname_idx on part  (cost=0.42..8.44 rows=1 width=61)
+   Index Cond: ((partname)::text = 'Part 100000'::text)
+(2 rows)
+
+Time: 1.031 ms
+
+
+------------------------Hash index----------------------- 
+
+Hash Index are only useful for equality comparison.
+They are not transaction safe, need to be manually rebuilt after crashes
+
+testdb=# alter table part add parttype varchar(100) CHECK (parttype in ('Engine','Suspension','Driveline','Brakes','Steering','General')) NOT NULL DEFAULT 'General';
+ALTER TABLE
+Time: 42690,557 ms (00:42,691)
+
+testdb=# with catqry as  (select id,(random()*6)::int % 6 as cat from part)
+update part SET parttype = CASE WHEN cat=1 THEN 'Engine' WHEN cat=2 THEN 'Suspension' WHEN cat=3 THEN 'Driveline' WHEN cat=4 THEN 'Brakes' WHEN cat=5 THEN 'Steering' ELSE 'General' END FROM catqry WHERE part.id=catqry.id;
+UPDATE 1000000
+
+testdb=# select count(*) from part where id % 500 = 0 AND parttype = 'Steering';
+ count 
+-------
+   325
+(1 row)
+
+Time: 157.231 ms
+
+testdb=# create index part_parttype_idx on part using hash(parttype);
+WARNING:  hash indexes are not WAL-logged and their use is discouraged
+CREATE INDEX
+Time: 67455.255 ms
+
+testdb=# select count(*) from part where id % 500 = 0 AND parttype = 'Steering';
+ count 
+-------
+   325
+(1 row)
+
+Time: 125.282 ms
+
+We will compare the performance of a hash index on integers against the equivalent b-tree index.
+
+testdb=# update part set machine_id=id;
+UPDATE 1000000
+Time: 394375.025 ms
+
+*****Without index
+
+testdb=# select * from part where machine_id=500000;
+   id   |   partno   |  partname   | partdescr | machine_id |  parttype  
+--------+------------+-------------+-----------+------------+------------
+ 500000 | PNo:500000 | Part 500000 |           |     500000 | Suspension
+(1 row)
+
+Time: 155.462 ms
+
+*****With Hash index
+
+testdb=# create index part_machine_id_idx on part using hash(machine_id);
+WARNING:  hash indexes are not WAL-logged and their use is discouraged
+CREATE INDEX
+Time: 1357.532 ms
+testdb=# select * from part where machine_id=500000;
+   id   |   partno   |  partname   | partdescr | machine_id |  parttype  
+--------+------------+-------------+-----------+------------+------------
+ 500000 | PNo:500000 | Part 500000 |           |     500000 | Suspension
+(1 row)
+
+Time: 6.553 ms
+
+----------------------------------------GIN---------------------------------------
+
+Generalized Inverted Indexes, commonly referred to as GIN, are most useful when you have data types that contain multiple values in a single column.
+
+“GIN is designed for handling cases where the items to be indexed are composite values, 
+and the queries to be handled by the index need to search for element values that appear within the composite items. 
+For example, the items could be documents, and the queries could be searches for documents containing specific words.”
+
+GINs are good for indexing array values as well as for implementing full-text search.
+
+CREATE TABLE users (
+    first_name text,
+    last_name text
+);
+
+insert into users SELECT md5(random()::text), md5(random()::text) FROM (SELECT * FROM generate_series(1,1000000) AS id) AS x;
+
+testdb=# SELECT count(*) FROM users where first_name ilike '%aeb%';
+ count 
+-------
+  7309
+(1 row)
+
+Time: 741.521 ms
+testdb=# SELECT count(*) FROM users where first_name ilike '%aeb%' or last_name ilike'%aeb%';
+ count 
+-------
+ 14653
+(1 row)
+
+Time: 1432.538 ms
+	
+testdb=# CREATE INDEX users_search_idx ON users USING gin (first_name gin_trgm_ops, last_name gin_trgm_ops);
+CREATE INDEX
+Time: 28524.548 ms
+testdb=# SELECT count(*) FROM users where first_name ilike '%aeb%';
+ count 
+-------
+  7309
+(1 row)
+
+Time: 38.672 ms
+testdb=# SELECT count(*) FROM users where first_name ilike '%aeb%' or last_name ilike'%aeb%';
+ count 
+-------
+ 14653
+(1 row)
+
+Time: 54.504 ms
+
+
+What is gin_trgm_ops?
+This option tells Postgres to index using trigrams over our selected columns.
+A trigram is a data structure that hold 3 letters of a word.
+Essentially, Postgres will break down each text column down into trigrams and use that in the index when we search against it.
+
+------------------------------------------------GiST---------------------------------
+GiST indexes are most useful when you have data that can in some way overlap with the value of that same column but from another row.
+
+Used to index the geometric data types, as well as full-text search.
+
+The best thing about GiST indexes: if you have say a geometry data type and you want to see if two polygons contained some point. 
+In one case a specific point may be contained within box, while another point only exists within one polygon. 
+
+testdb=# create table task_scheduling(task_id serial primary key,task_name varchar(50) not null,
+resource_name varchar(20) not null,start_date date not null,end_date date,
+constraint task_scheduling_uk UNIQUE (task_name,resource_name));
+
+CREATE TABLE
+Time: 133.405 ms
+
+Each task should hold only one resource at time and no other resource should be assigned to same task in the given period for allocated reource
+
+To make non overlapping rows with a constraint..
+
+testdb=# create extension btree_gist ;
+CREATE EXTENSION
+Time: 199.615 ms
+
+testdb=# alter table task_scheduling add constraint task_scheduling_per EXCLUDE USING GIST(task_name WITH=,daterange(start_date,end_date) WITH &&);
+ALTER TABLE
+Time: 63.500 ms
+
+testdb=# insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Printer','2020-02-01','2021-02-01');
+INSERT 0 1
+
+testdb=# select * from task_scheduling;
+ task_id |     task_name      | resource_name | start_date |  end_date  
+---------+--------------------+---------------+------------+------------
+       1 | Print photo copies | Printer       | 2020-02-01 | 2021-02-01
+(1 row)
+
+Time: 0.694 ms
+
+testdb=# insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Xerox','2020-02-01','2020-10-01');
+
+ERROR:  conflicting key value violates exclusion constraint "task_scheduling_per"
+DETAIL:  Key (task_name, daterange(start_date, end_date))=(Print photo copies, [2020-02-01,2020-10-01)) 
+conflicts with existing key (task_name, daterange(start_date, end_date))=(Print photo copies, [2020-02-01,2021-02-01)).
+Time: 1.250 ms
+
+As Printer resource is assigned to task from  2020-02-01 | 2021-02-01.No resource can be assigned to that task in the given period
+
+testdb=# insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Xerox','2018-02-01','2020-02-01');
+INSERT 0 1
+Time: 30.165 ms
+
+testdb=# insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Scanner','2021-02-01',null);
+INSERT 0 1
+Time: 45.414 ms
+
+testdb=# insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Wifi Printer','2023-02-01',null);
+ERROR:  conflicting key value violates exclusion constraint "task_scheduling_per"
+DETAIL:  Key (task_name, daterange(start_date, end_date))=(Print photo copies, [2023-02-01,)) 
+conflicts with existing key (task_name, daterange(start_date, end_date))=(Print photo copies, [2021-02-01,)).
+Time: 1.127 ms
+
+-------------------------------------------SP-GiST------------------------------
+SP-GiST is an abbreviation for space-partitioned GiST
+*SP-GiST supports partitioned search trees, which facilitate development of a wide range of different non-balanced data structures,
+ such as quad-trees, k-d trees, and suffix trees (tries). 
+ The common feature of these structures is that they repeatedly divide the search space into partitions that need not be of equal size.
+
+*Developed for in-memory usage.
+*SP-GiST can also be used in exclusion constraints,
+
+
+-----------------------------------------BRIN------------------------------------
+BRIN stands for “Block Range Index”. 
+A block range is a group of pages adjacent to each other, where summary information about all those pages is stored in Index.  
+For example, Datatypes like integers – dates where sort order is linear – can be stored as min and max value in the range. 
+
+Block range indexes are best when there is some natural ordering to the data, and the data tends to be very large.
+If you’re querying against a large set of data that is naturally grouped together such as data for several zip codes
+BRIN helps to ensure that similar zip codes are located near each other on disk.
+
+BRIN indexes are usually very small compared to B-Tree indexes. 
+
+*****Without BRIN index
+testdb=# select count(*) from part where machine_id between 5000 and 10000; (Here it is using hash index right now)
+count 
+-------
+  5001
+(1 row)
+
+Time: 182.702 ms
+
+*****With BRIN Index
+
+testdb=# create index part_machine_id_idx_brin on part using brin(machine_id);
+CREATE INDEX
+Time: 323.403 ms
+testdb=# select count(*) from part where machine_id between 5000 and 10000;
+ count 
+-------
+  5001
+(1 row)
+
+Time: 94.291 ms
+
+
+
+
+When Should Indexes be Avoided?
+
+Indexes should not be used on small tables.
+Tables that have frequent, large batch update or insert operations.
+Indexes should not be used on columns that contain a high number of NULL values.
+Columns that are frequently manipulated should not be indexed.
+
+
+Reference
+https://severalnines.com/blog/postgresql-database-indexing-overview
+https://hashrocket.com/blog/posts/exploring-postgres-gin-index
+https://www.citusdata.com/blog/2017/10/17/tour-of-postgres-index-types/
+https://www.postgresql.org/docs/9.2/spgist-intro.html
+https://www.percona.com/blog/2019/07/16/brin-index-for-postgresql-dont-forget-the-benefits/
