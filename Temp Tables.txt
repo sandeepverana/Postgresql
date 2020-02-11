@@ -1,0 +1,64 @@
+A temporary table  is a short-lived table that exists for the duration of a database session
+Dropped at the end of a session or transaction
+A temporary table is visible only to the session that creates it.
+Any indexes created on a temporary table are automatically temporary as well
+
+
+
+*****Can have same name as permanent table but we cannot access the permanent table until temp table is droped
+
+postgres=# CREATE TABLE customers(id SERIAL PRIMARY KEY, name VARCHAR NOT NULL);
+CREATE TABLE
+postgres=# CREATE TEMP TABLE customers(customer_id INT);
+CREATE TABLE
+postgres=# select * from customers;
+ customer_id 
+-------------
+(0 rows)
+
+*****Creates temporary tables in a special schema(pg_temp_nn)
+
+postgres=# \dt
+            List of relations
+  Schema   |   Name    | Type  |  Owner   
+-----------+-----------+-------+----------
+ pg_temp_2 | customers | table | postgres
+ public    | test      | table | postgres
+(2 rows)
+
+*****To access permanent table schema name is used
+postgres=# \d
+                 List of relations
+  Schema   |       Name       |   Type   |  Owner   
+-----------+------------------+----------+----------
+ pg_temp_2 | customers        | table    | postgres
+ public    | customers_id_seq | sequence | postgres
+ public    | test             | table    | postgres
+(3 rows)
+
+postgres=# select * from public.customers;
+ id | name 
+----+------
+(0 rows)
+
+
+
+References
+https://www.postgresqltutorial.com/postgresql-temporary-table/
+https://severalnines.com/database-blog/comparing-temporary-tables-postgresql-oracle-gtt
+
+
+*****To drop a temp table
+
+postgres=# drop table customers;
+DROP TABLE
+postgres=# \dt
+           List of relations
+ Schema |   Name    | Type  |  Owner   
+--------+-----------+-------+----------
+ public | customers | table | postgres
+ public | test      | table | postgres
+(2 rows)
+
+
+

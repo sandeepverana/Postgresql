@@ -1,0 +1,94 @@
+
+A view is named query that provides another way to present data in the database tables.
+Views are based on one or more tables, which are known as base tables.
+Views doesnot contain any data
+Views are definitions built on top of other tables (or views).
+If data is changed in the underlying table, the same change is reflected in the view
+A view can be accessed as a virtual table in PostgreSQL
+Temporary views can also be created
+
+testdb=# create view part_view as select * from part limit 5 offset 100;
+CREATE VIEW
+
+testdb=# select * from part_view;
+   id   |   partno   |  partname   | partdescr | machine_id | parttype 
+--------+------------+-------------+-----------+------------+----------
+ 495474 | PNo:495474 | Part 495474 |           |     495474 | Engine
+ 495504 | PNo:495504 | Part 495504 |           |     495504 | Brakes
+ 495567 | PNo:495567 | Part 495567 |           |     495567 | Steering
+ 495579 | PNo:495579 | Part 495579 |           |     495579 | Brakes
+ 495677 | PNo:495677 | Part 495677 |           |     495677 | Steering
+(5 rows)
+
+To change the view definition
+testdb=# create or replace view part_view as select * from part where machine_id between 400000 and 400010;
+CREATE VIEW
+
+***You can't drop the column's from the view
+
+***To rename a view
+testdb=# alter view part_view rename to view_part;
+ALTER VIEW
+
+
+
+---------------------------------------Materialized Views---------------------------------
+Materialized view  stores data physically and refreshes the data periodically from the base tables. 
+The materialized views have many advantages in many scenarios such as faster access to data from a remote server, data caching, etc.
+
+Disadvantage of simple view
+Each time a view is used in a query, the query that created the view is executed.
+This makes simple views ineffificent to access time
+
+Materialized views allow you to persist a view in the database physically
+
+*****Creating a materialized view
+
+testdb=# create materialized view part_view as select * from part where machine_id between 400000 and 400010;
+SELECT 11
+
+*****Load no data into the materialized view while you are creating it
+testdb=# create materialized view part_view as select * from part where machine_id between 400000 and 400010 with no data;
+CREATE MATERIALIZED VIEW
+Time: 77.148 ms
+
+In case you use WITH NO DATA, the view is flagged as unreadable. It means that you cannot query data from the view until you load data into it.
+
+testdb=# select * from part_view;
+ERROR:  materialized view "part_view" has not been populated
+HINT:  Use the REFRESH MATERIALIZED VIEW command.
+Time: 0.969 ms
+
+***To load data into a materialized view
+
+testdb=# refresh materialized view  part_view;
+REFRESH MATERIALIZED VIEW
+Time: 269.896 ms
+
+testdb=# select * from part_view;
+   id   |   partno   |  partname   | partdescr | machine_id |  parttype  
+--------+------------+-------------+-----------+------------+------------
+ 400004 | PNo:400004 | Part 400004 |           |     400004 | Suspension
+ 400002 | PNo:400002 | Part 400002 |           |     400002 | Brakes
+ 400009 | PNo:400009 | Part 400009 |           |     400009 | Steering
+ 400000 | PNo:400000 | Part 400000 |           |     400000 | Brakes
+ 400001 | PNo:400001 | Part 400001 |           |     400001 | General
+ 400007 | PNo:400007 | Part 400007 |           |     400007 | Suspension
+ 400010 | PNo:400010 | Part 400010 |           |     400010 | Suspension
+ 400008 | PNo:400008 | Part 400008 |           |     400008 | Engine
+ 400006 | PNo:400006 | Part 400006 |           |     400006 | Steering
+ 400005 | PNo:400005 | Part 400005 |           |     400005 | Driveline
+ 400003 | PNo:400003 | Part 400003 |           |     400003 | Brakes
+(11 rows)
+
+Time: 2.937 ms
+
+
+
+
+
+
+
+
+
+
