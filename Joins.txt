@@ -1,0 +1,212 @@
+Table CATEGORY
+
+create table CATEGORY(cat_id int primary key,cat_name varchar(25));
+
+INSERT into CATEGORY values(1,'COMPUTER');
+INSERT into CATEGORY values(2,'MOBILE');
+INSERT into CATEGORY values(3,'FASHION');
+
+
+
+Table PRODUCTS
+
+create table PRODUCTS(prod_id int PRIMARY KEY,
+prod_name varchar(30) NOT NULL,
+price numeric(8,2) CHECK (price>0),
+cid int,CONSTRAINT prod_fk FOREIGN KEY(cid) REFERENCES CATEGORY(cat_id));
+
+INSERT into PRODUCTS values(1001,'ACER ASPIRE',33000,1);
+INSERT into PRODUCTS values(1002,'DELL INSPIRON',43000,1);
+INSERT into PRODUCTS values(1003,'LENOVE IDEAPAD',18000,1);
+INSERT into PRODUCTS values(1004,'SAMSUNG GALAXY S9',35000,2);
+INSERT into PRODUCTS values(1005,'IPHONE 7',60000,2);
+INSERT into PRODUCTS values(1006,'HONOR 6X',9000,2);
+INSERT into PRODUCTS values(1007,'NOKIA 1100',4000,null);
+
+
+testdb=# select * from category;
+ cat_id | cat_name 
+--------+----------
+      1 | COMPUTER
+      2 | MOBILE
+      3 | FASHION
+(3 rows)
+
+testdb=# select * from products;
+ prod_id |     prod_name     |  price   | cid 
+---------+-------------------+----------+-----
+    1001 | ACER ASPIRE       | 33000.00 |   1
+    1002 | DELL INSPIRON     | 43000.00 |   1
+    1003 | LENOVE IDEAPAD    | 18000.00 |   1
+    1004 | SAMSUNG GALAXY S9 | 35000.00 |   2
+    1005 | IPHONE 7          | 60000.00 |   2
+    1006 | HONOR 6X          |  9000.00 |   2
+    1007 | NOKIA 1100        |  4000.00 |    
+(7 rows)
+
+
+-------------------------INNER JOIN---------------------------
+INNER JOINS return all rows from multiple tables where the join condition is met.
+
+
+testdb=# select p.prod_name,p.price,c.cat_name from products p inner join category c on p.cid=c.cat_id;
+
+     prod_name     |  price   | cat_name 
+-------------------+----------+----------
+ ACER ASPIRE       | 33000.00 | COMPUTER
+ DELL INSPIRON     | 43000.00 | COMPUTER
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE
+ IPHONE 7          | 60000.00 | MOBILE
+ HONOR 6X          |  9000.00 | MOBILE
+(6 rows)
+
+ANSII Standard
+
+testdb=# select p.prod_name,p.price,c.cat_name from products p,category c where p.cid=c.cat_id;
+
+     prod_name     |  price   | cat_name 
+-------------------+----------+----------
+ ACER ASPIRE       | 33000.00 | COMPUTER
+ DELL INSPIRON     | 43000.00 | COMPUTER
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE
+ IPHONE 7          | 60000.00 | MOBILE
+ HONOR 6X          |  9000.00 | MOBILE
+(6 rows)
+
+
+--------------------------------------LEFT JOIN-----------------------------------
+ LEFT OUTER JOIN or LEFT JOIN returns all rows from the LEFT-hand table specified in the ON condition
+ and only those rows from the other table where the joined fields are equal (join condition is met).
+ 
+testdb=# select p.prod_name,p.price,c.cat_name from products p left join category c on p.cid=c.cat_id;
+
+     prod_name     |  price   | cat_name 
+-------------------+----------+----------
+ ACER ASPIRE       | 33000.00 | COMPUTER
+ DELL INSPIRON     | 43000.00 | COMPUTER
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE
+ IPHONE 7          | 60000.00 | MOBILE
+ HONOR 6X          |  9000.00 | MOBILE
+ NOKIA 1100        |  4000.00 | 
+(7 rows)
+
+
+----------------------------------------RIGHT JOIN-----------------------------------------
+RIGHT OUTER JOIN or RIGHT JOIN returns all rows from the RIGHT-hand table specified in the ON condition
+and only those rows from the other table where the joined fields are equal (join condition is met).
+
+testdb=# select p.prod_name,p.price,c.cat_name from products p right join category c on p.cid=c.cat_id;
+     prod_name     |  price   | cat_name 
+-------------------+----------+----------
+ ACER ASPIRE       | 33000.00 | COMPUTER
+ DELL INSPIRON     | 43000.00 | COMPUTER
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE
+ IPHONE 7          | 60000.00 | MOBILE
+ HONOR 6X          |  9000.00 | MOBILE
+                   |          | FASHION
+
+
+--------------------------------------FULL JOIN-----------------------------------
+FULL OUTER JOIN or FULL JOIN returns all rows from the LEFT-hand table and RIGHT-hand table with nulls in place where the join condition is not met.
+i.e Combines the result set of both RIGHT JOIN and LEFT JOIN
+
+testdb=# select p.prod_name,p.price,c.cat_name from products p full  join category c on p.cid=c.cat_id;
+
+     prod_name     |  price   | cat_name 
+-------------------+----------+----------
+ ACER ASPIRE       | 33000.00 | COMPUTER
+ DELL INSPIRON     | 43000.00 | COMPUTER
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE
+ IPHONE 7          | 60000.00 | MOBILE
+ HONOR 6X          |  9000.00 | MOBILE
+ NOKIA 1100        |  4000.00 | 
+                   |          | FASHION
+(8 rows)
+
+-------------------------------CROSS JOIN-----------------------
+
+The Cross Join creates a cartesian product between two sets of data.
+
+testdb=# select p.prod_name,p.price,c.cat_name from products p,category c;    
+
+	prod_name     |  price   | cat_name 
+-------------------+----------+----------
+ ACER ASPIRE       | 33000.00 | COMPUTER
+ DELL INSPIRON     | 43000.00 | COMPUTER
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER
+ SAMSUNG GALAXY S9 | 35000.00 | COMPUTER
+ IPHONE 7          | 60000.00 | COMPUTER
+ HONOR 6X          |  9000.00 | COMPUTER
+ NOKIA 1100        |  4000.00 | COMPUTER
+ ACER ASPIRE       | 33000.00 | MOBILE
+ DELL INSPIRON     | 43000.00 | MOBILE
+ LENOVE IDEAPAD    | 18000.00 | MOBILE
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE
+ IPHONE 7          | 60000.00 | MOBILE
+ HONOR 6X          |  9000.00 | MOBILE
+ NOKIA 1100        |  4000.00 | MOBILE
+ ACER ASPIRE       | 33000.00 | FASHION
+ DELL INSPIRON     | 43000.00 | FASHION
+ LENOVE IDEAPAD    | 18000.00 | FASHION
+ SAMSUNG GALAXY S9 | 35000.00 | FASHION
+ IPHONE 7          | 60000.00 | FASHION
+ HONOR 6X          |  9000.00 | FASHION
+ NOKIA 1100        |  4000.00 | FASHION
+(21 rows)
+
+
+--------------------Display the product details and category name of all products
+
+testdb=# select p.prod_id,p.prod_name,p.price,c.cat_name from products p INNER JOIN category c on p.cid=c.cat_id;
+ prod_id |     prod_name     |  price   | cat_name 
+---------+-------------------+----------+----------
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE
+    1005 | IPHONE 7          | 60000.00 | MOBILE
+    1006 | HONOR 6X          |  9000.00 | MOBILE
+(6 rows)
+
+
+---------------------Display the products for the given category name
+
+testdb=# select p.*,c.cat_name from products p right join category c on p.cid=c.cat_id where c.cat_name='FASHION';
+ prod_id | prod_name | price | cid | cat_name 
+---------+-----------+-------+-----+----------
+         |           |       |     | FASHION
+(1 row)
+
+
+
+--------------------Display the product  with given category name for the given price range
+
+testdb=# select p.prod_id,p.prod_name,p.price,c.cat_name from products p right join category c on p.cid=c.cat_id where c.cat_name='COMPUTER' and p.price between 20000 and 40000;
+ prod_id |  prod_name  |  price   | cat_name 
+---------+-------------+----------+----------
+    1001 | ACER ASPIRE | 33000.00 | COMPUTER
+(1 row)
+
+--------------Display the category that donot have any products
+testdb=# select c.cat_name from category c LEFT JOIN products p on  c.cat_id=p.cid where p.prod_id is NULL;
+ cat_name 
+----------
+ FASHION
+(1 row)
+
+
+
+
+
+
+
+
+
+
+
+

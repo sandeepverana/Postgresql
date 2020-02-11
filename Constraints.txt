@@ -1,0 +1,283 @@
+Constraints are a part of the table definition that limits the values inserted into its columns.
+
+****************************Check constraint***********************************
+A check constraint allows you to specify that the value in a certain column must satisfy a Boolean (truth-value) expression.
+
+testdb=# create table orders(order_id int,price numeric check(price>0),description text);
+CREATE TABLE
+
+Giving name to constraint
+testdb=# create table orders(order_id int,price numeric constraint order_check_constraint check(price>0),description text);
+CREATE TABLE
+
+**A check constraint can also refer to several columns.
+
+testdb=# create table orders(order_id int,price numeric,discounted_price numeric,description text,
+check(price>0),check(discounted_price>0),check(price>discounted_price));
+CREATE TABLE
+
+testdb=# \d orders 
+         Table "public.orders"
+      Column      |  Type   | Modifiers 
+------------------+---------+-----------
+ order_id         | integer | 
+ price            | numeric | 
+ discounted_price | numeric | 
+ description      | text    | 
+Check constraints:
+    "orders_check" CHECK (price > discounted_price)
+    "orders_discounted_price_check" CHECK (discounted_price > 0::numeric)
+    "orders_price_check" CHECK (price > 0::numeric)
+	
+	
+************************************NOT NULL constraint****************************
+A not-null constraint simply specifies that a column must not assume the null value
+
+testdb=# create table orders(order_id int not null,price numeric check(price>0),description text);
+CREATE TABLE
+testdb=# \d orders 
+       Table "public.orders"
+   Column    |  Type   | Modifiers 
+-------------+---------+-----------
+ order_id    | integer | not null
+ price       | numeric | 
+ description | text    | 
+Check constraints:
+    "orders_price_check" CHECK (price > 0::numeric)
+	
+testdb=# create table orders(order_id int not null,price numeric not null check(price>0),description text not null);
+CREATE TABLE
+testdb=# \d orders 
+       Table "public.orders"
+   Column    |  Type   | Modifiers 
+-------------+---------+-----------
+ order_id    | integer | not null
+ price       | numeric | not null
+ description | text    | not null
+Check constraints:
+    "orders_price_check" CHECK (price > 0::numeric)
+
+	
+testdb=# insert into orders(order_id,price,description) values(null,10.50,'A test order');
+ERROR:  null value in column "order_id" violates not-null constraint
+DETAIL:  Failing row contains (null, 10.50, A test order).
+
+
+********************************UNIQUE*********************************************
+Unique constraints ensure that the data contained in a column, or a group of columns, is unique among all the rows in the table.
+
+testdb=# create table orders(order_id int not null UNIQUE,price numeric not null check(price>0),description text not null);
+CREATE TABLE
+
+testdb=# insert into orders values(100,500.505,'A test description');
+INSERT 0 1
+
+testdb=# insert into orders values(100,600,'A test description');
+ERROR:  duplicate key value violates unique constraint "orders_order_id_key"
+DETAIL:  Key (order_id)=(100) already exists.
+
+**Adding a unique constraint will automatically create a unique B-tree index on the column or group of columns listed in the constraint
+**Even in the presence of a unique constraint it is possible to store duplicate rows that contain a null value in at least one of the constrained columns.
+
+testdb=# \d orders
+       Table "public.orders"
+   Column    |  Type   | Modifiers 
+-------------+---------+-----------
+ order_id    | integer | 
+ price       | numeric | 
+ description | text    | 
+Indexes:
+    "orders_order_id_key" UNIQUE CONSTRAINT, btree (order_id)
+Check constraints:
+    "orders_price_check" CHECK (price > 0::numeric)
+
+testdb=# select * from orders;
+ order_id |  price  |    description     
+----------+---------+--------------------
+      100 | 500.505 | A test description
+          |     300 | 
+          |     400 | 
+(3 rows)
+
+********************************************Primary Keys******************************
+A primary key constraint indicates that a column, or group of columns, can be used as a unique identifier for rows in the table. 
+Adding a primary key will automatically create a unique B-tree index on the column or group of columns listed in the primary key, 
+and will force the column(s) to be marked NOT NULL and UNIQUE.
+
+testdb=# create table prod(prod_no int primary key,price int);
+CREATE TABLE
+testdb=# \d prod;
+      Table "public.prod"
+ Column  |  Type   | Modifiers 
+---------+---------+-----------
+ prod_no | integer | not null
+ price   | integer | 
+Indexes:
+    "prod_pkey" PRIMARY KEY, btree (prod_no)
+
+testdb=# alter table prod drop constraint prod_pkey;
+ALTER TABLE
+testdb=# \d prod;
+      Table "public.prod"
+ Column  |  Type   | Modifiers 
+---------+---------+-----------
+ prod_no | integer | not null
+ price   | integer | 
+
+testdb=# alter table prod add constraint prod_prod_no_pkey primary key(prod_no); 
+ALTER TABLE
+testdb=# \d prod
+      Table "public.prod"
+ Column  |  Type   | Modifiers 
+---------+---------+-----------
+ prod_no | integer | not null
+ price   | integer | 
+Indexes:
+    "prod_prod_no_pkey" PRIMARY KEY, btree (prod_no)
+
+testdb=# alter table prod alter prod_no drop not null;
+ERROR:  column "prod_no" is in a primary key
+
+
+A table can have at most one primary key. (There can be any number of unique and not-null constraints, 
+which are functionally almost the same thing, but only one can be identified as the primary key.) 
+Relational database theory dictates that every table must have a primary key. 
+This rule is not enforced by PostgreSQL, but it is usually best to follow it.
+
+
+
+***************************************Foreign Keys*****************************
+A foreign key constraint specifies that the values in a column (or a group of columns) 
+must match the values appearing in some row of another table. 
+We say this maintains the referential integrity between two related tables.
+A table can contain multiple foreign keys which is used to implement many to many relationships betweeen tables 
+
+testdb=# create table prod(prod_no int primary key,name text,price numeric);
+CREATE TABLE
+
+testdb=# create table orders(order_id integer primary key,prod_no int references prod(prod_no),quantity int);
+CREATE TABLE
+
+
+testdb=# create table order_sample(order_id int references prod);
+CREATE TABLE
+-in absence of a column list the primary key of the referenced table is used as the referenced column(s).
+
+
+------------------------ON DELETE CASCADE----------------------
+
+CASCADE specifies that when a referenced row is deleted, row(s) referencing it should be automatically deleted as well. 
+
+testdb=# \d prod
+      Table "public.prod"
+ Column  |  Type   | Modifiers 
+---------+---------+-----------
+ prod_no | integer | not null
+ name    | text    | 
+ price   | numeric | 
+Indexes:
+    "prod_pkey" PRIMARY KEY, btree (prod_no)
+Referenced by:
+    TABLE "order_items" CONSTRAINT "order_items_prod_no_fkey" FOREIGN KEY (prod_no) REFERENCES prod(prod_no)
+
+testdb=# \d orders
+         Table "public.orders"
+      Column      |  Type   | Modifiers 
+------------------+---------+-----------
+ order_id         | integer | not null
+ shipping_address | text    | 
+Indexes:
+    "orders_pkey" PRIMARY KEY, btree (order_id)
+Referenced by:
+    TABLE "order_items" CONSTRAINT "order_items_order_id_fkey" FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
+
+
+testdb=# \d order_items
+   Table "public.order_items"
+  Column  |  Type   | Modifiers 
+----------+---------+-----------
+ prod_no  | integer | not null
+ order_id | integer | not null
+ quantity | integer | 
+Indexes:
+    "order_items_pkey" PRIMARY KEY, btree (prod_no, order_id)
+Foreign-key constraints:
+    "order_items_order_id_fkey" FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
+    "order_items_prod_no_fkey" FOREIGN KEY (prod_no) REFERENCES prod(prod_no)
+
+testdb=# select * from order_items;
+ prod_no | order_id | quantity 
+---------+----------+----------
+      10 |      100 |        2
+      11 |      100 |        3
+      12 |      101 |        2
+(3 rows)
+
+testdb=# select * from orders;
+ order_id | shipping_address 
+----------+------------------
+      100 | Hyd
+      101 | Pune
+      103 | Chennai
+      102 | Banglore
+(4 rows)
+
+testdb=# select * from order_items;
+ prod_no | order_id | quantity 
+---------+----------+----------
+      10 |      100 |        2
+      11 |      100 |        3
+      12 |      101 |        2
+      10 |      102 |        4
+      11 |      103 |        2
+(5 rows)
+
+testdb=# delete from orders where order_id=102;
+DELETE 1
+
+testdb=# select * from orders;
+ order_id | shipping_address 
+----------+------------------
+      100 | Hyd
+      101 | Pune
+      103 | Chennai
+(3 rows)
+
+testdb=# select * from order_items;
+ prod_no | order_id | quantity 
+---------+----------+----------
+      10 |      100 |        2
+      11 |      100 |        3
+      12 |      101 |        2
+      11 |      103 |        2
+(4 rows)
+
+Analogous to ON DELETE there is also ON UPDATE which is invoked when a referenced column is changed (updated)
+In this case, CASCADE means that the updated values of the referenced column(s) should be copied into the referencing row(s).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

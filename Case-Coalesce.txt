@@ -1,0 +1,214 @@
+CASE:
+
+The SQL CASE expression is a generic conditional expression, similar to if/else statements in other languages:
+
+Syntax:
+CASE
+  WHEN <search-condition> THEN <output>
+  WHEN <search-condition> THEN <output>
+  ...
+  ELSE <output>
+END
+
+
+Short hand notation
+
+CASE <search-parameter>
+  WHEN <search-value> THEN <output>
+  WHEN <search-value> THEN <output>
+  ...
+  ELSE <output>
+END
+
+
+CASE clauses can be used wherever an expression is valid. condition is an expression that returns a boolean result. 
+If the result is true then the value of the CASE expression is the result that follows the condition. 
+If the result is false any subsequent WHEN clauses are searched in the same manner. 
+If no WHEN condition is true then the value of the case expression is the result in the ELSE clause. 
+If the ELSE clause is omitted and no condition matches, the result is null.
+
+testdb=# select * from category;
+ cat_id | cat_name 
+--------+----------
+      1 | COMPUTER
+      2 | MOBILE
+      3 | FASHION
+(3 rows)
+
+testdb=# select * from products;
+ prod_id |     prod_name     |  price   | cid 
+---------+-------------------+----------+-----
+    1001 | ACER ASPIRE       | 33000.00 |   1
+    1002 | DELL INSPIRON     | 43000.00 |   1
+    1003 | LENOVE IDEAPAD    | 18000.00 |   1
+    1004 | SAMSUNG GALAXY S9 | 35000.00 |   2
+    1005 | IPHONE 7          | 60000.00 |   2
+    1006 | HONOR 6X          |  9000.00 |   2
+    1007 | NOKIA 1100        |  4000.00 |    
+(7 rows)
+
+
+------------------Increase the prices of mobile by 50%------------------
+
+testdb=# select p.prod_name,p.price,c.cat_name,case
+when c.cat_name='MOBILE' then 1.50*p.price
+else p.price                                
+end         
+as "Revised Prices"
+from products p inner join category c on p.cid=c.cat_id;
+
+     prod_name     |  price   | cat_name | Revised Prices 
+-------------------+----------+----------+----------------
+ ACER ASPIRE       | 33000.00 | COMPUTER |       33000.00
+ DELL INSPIRON     | 43000.00 | COMPUTER |       43000.00
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER |       18000.00
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE   |     52500.0000
+ IPHONE 7          | 60000.00 | MOBILE   |     90000.0000
+ HONOR 6X          |  9000.00 | MOBILE   |     13500.0000
+(6 rows)
+
+
+Short hand notation
+
+testdb=# select p.prod_name,p.price,c.cat_name,
+testdb-# case c.cat_name
+testdb-# when 'MOBILE' then 1.50*p.price
+testdb-# else p.price
+testdb-# end "Revised Prices"
+testdb-# from products p right join category c on p.cid=c.cat_id;
+
+     prod_name     |  price   | cat_name | Revised Prices 
+-------------------+----------+----------+----------------
+ ACER ASPIRE       | 33000.00 | COMPUTER |       33000.00
+ DELL INSPIRON     | 43000.00 | COMPUTER |       43000.00
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER |       18000.00
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE   |     52500.0000
+ IPHONE 7          | 60000.00 | MOBILE   |     90000.0000
+ HONOR 6X          |  9000.00 | MOBILE   |     13500.0000
+                   |          | FASHION  |               
+(7 rows)
+
+
+------------------Increase the prices of mobile by 20% and computers by 10%------------------
+
+testdb=# select p.prod_name,p.price,c.cat_name,case c.cat_name
+when 'MOBILE' then 1.50*p.price
+when 'COMPUTER' then 1.10*p.price
+else p.price
+end
+as "Revised Prices"
+from products p inner join category c on p.cid=c.cat_id;
+
+     prod_name     |  price   | cat_name | Revised Prices 
+-------------------+----------+----------+----------------
+ ACER ASPIRE       | 33000.00 | COMPUTER |     36300.0000
+ DELL INSPIRON     | 43000.00 | COMPUTER |     47300.0000
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER |     19800.0000
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE   |     52500.0000
+ IPHONE 7          | 60000.00 | MOBILE   |     90000.0000
+ HONOR 6X          |  9000.00 | MOBILE   |     13500.0000
+(6 rows)
+
+------------------------------------------COALESCE---------------------------------------
+
+COALESCE(value [, ...])
+
+This is often useful to substitute a default value for null values when data is retrieved for display
+The COALESCE function returns the first of its arguments that is not null. 
+NULL is returned only if all arguments are null. 
+
+
+testdb=# select * from employee;
+ emp_id |  emp_name  | emp_sal  | emp_dept 
+--------+------------+----------+----------
+   1001 | rama       | 35000.00 | hr
+   1002 | sai kumar  | 55000.00 | hr
+   1003 | ravi kumar | 45000.00 | pr
+   1004 | vikas      | 15000.00 | finance
+   1005 | surya      | 25000.00 | pr
+   1006 | hari       | 65000.00 | pr
+   1007 | jay        | 18000.00 | hr
+   1008 | sita       | 25000.00 | hr
+   1009 | peter      | 25000.00 | hr
+   1010 | arjun      | 37000.00 | 
+   1011 | ravi       |          | pr
+(11 rows)
+
+Find the average sal of employees;
+
+Without using coalesce
+
+testdb=# select round(avg(emp_sal),2) from employee;
+  round   
+----------
+ 34500.00
+(1 row)
+
+
+With coalesce
+
+testdb=# select round(avg(coalesce(emp_sal,0)),2) from employee;
+  round   
+----------
+ 31363.64
+ 
+Like a CASE expression, COALESCE will not evaluate arguments that are not needed to determine the result; that is, 
+arguments to the right of the first non-null argument are not evaluated.
+ 
+ testdb=# select coalesce(emp_sal,NULL,0,100,200)from employee;
+ coalesce 
+----------
+ 35000.00
+ 55000.00
+ 45000.00
+ 15000.00
+ 25000.00
+ 65000.00
+ 18000.00
+ 25000.00
+ 25000.00
+ 37000.00
+        0
+(11 rows)
+
+testdb=# select * from person;
+
+ first_name | middle_name | last_name  
+------------+-------------+------------
+ Sandeep    |             | Alimi
+ Sachin     |             | Vadlakonda
+ Bharath    | chary       | B
+ Gayatri    | Kapoor      | G
+ Srinivas   | kumar       | K
+ Vivek      | yadav       | Gorla
+(6 rows)
+
+
+Without COALESCE
+
+testdb=# select first_name ||' '||middle_name||' '||last_name as full_name from person;
+     full_name     
+-------------------
+ 
+ 
+ Bharath chary B
+ Gayatri Kapoor G
+ Srinivas kumar K
+ Vivek yadav Gorla
+(6 rows)
+
+With COALESCE
+
+testdb=# select first_name ||' '||coalesce(middle_name,' ')||' '||last_name as full_name from person;
+      full_name      
+---------------------
+ Sandeep   Alimi
+ Sachin   Vadlakonda
+ Bharath chary B
+ Gayatri Kapoor G
+ Srinivas kumar K
+ Vivek yadav Gorla
+(6 rows)
+
+
+
