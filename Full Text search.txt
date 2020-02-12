@@ -1,0 +1,127 @@
+Full Text Searching (or just text search) provides the capability to identify natural-language documents that satisfy a query
+
+ ~, ~*, LIKE, and ILIKE operators can be used but have disadvantages:
+ There is no linguistic support
+ They provide no ordering (ranking) of search results
+ They tend to be slow because there is no index support
+ The regular expression can support LIKE operator searches up to a certain extent and 
+ still lack the mechanism to handle plural words and derived words. 
+ A single word can have many derived words that are tedious to find out using regular expressions.
+
+ 
+ 
+testdb=# select content  from news where content like '%implement%';
+                                    content                                    
+-------------------------------------------------------------------------------
+ Bare bones implementations of some of the foundational models and algorithms.
+(1 row)
+
+testdb=# select content  from news where content like '%Implement%';
+ content 
+---------
+(0 rows)
+
+***to_tsvector
+*parses the document to get a list of tokens, reduces tokens to lexemes and produces a list of lexemes with their position as a tsvector. 
+*‘ts’ in the tsvector represents ‘text search’. 
+*A list of dictionaries will be consulted for each token and thus eliminates multiple normalized lexemes representing a token.
+*Omit the stop words, articles and conjunctions which carry less meaning in a document. 
+
+***to_tsquery
+for querying the tsvector for certain words, phrases or complex queries separated by boolean operators & (AND), | (OR) or ! (NOT).
+
+testdb=# select * from to_tsvector('Bare bones implementations of some of the foundational models and algorithms.');
+                             to_tsvector                              
+----------------------------------------------------------------------
+ 'algorithm':11 'bare':1 'bone':2 'foundat':8 'implement':3 'model':9
+(1 row)
+
+Num indicates its presence in the text or document
+
+testdb=# select * from to_tsquery('english','delevering|products|to|customers'); 
+             to_tsquery             
+------------------------------------
+ ( 'delev' | 'product' ) | 'custom'
+(1 row)
+
+
+testdb=# select * from news where to_tsvector('english',content) @@ to_tsquery('english','IMPLEMENT');
+
+ id |             title             |                                    content                                    | author 
+----+-------------------------------+-------------------------------------------------------------------------------+--------
+  3 | Machine Learning from scratch | Bare bones implementations of some of the foundational models and algorithms. | Jo
+(1 row)
+
+testdb=# select title,content from news where
+testdb-# to_tsvector('english',content)
+testdb-# @@
+testdb-# to_tsquery('english','IMPLemenT | check');
+                              title                              |                                                        content                                                         
+-----------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------
+ Hitting the beach was voted the best part of life in the region | Exploring tracks and trails was second most popular, followed by visiting the shops and then checking out local parks.
+ Machine Learning from scratch                                   | Bare bones implementations of some of the foundational models and algorithms.
+(2 rows)
+
+testdb=# select title,content from news where
+to_tsvector('english',content)
+@@
+to_tsquery('english','IMPLemenT & model');
+             title             |                                    content                                    
+-------------------------------+-------------------------------------------------------------------------------
+ Machine Learning from scratch | Bare bones implementations of some of the foundational models and algorithms.
+(1 row)
+
+
+***The ts_rank function is used to get the relevancy score of the match (based on the frequency of matched lexemes).
+
+select ts_rank(
+  to_tsvector('english', 'This department delivers the actual product to customers') , 
+  to_tsquery('english', 'product')
+);
+ts_rank
+-----------
+0.0607927106
+
+
+select ts_rank(
+  to_tsvector('english', 'This department delivers the actual product to customers') , 
+  to_tsquery('english', 'product & customers')
+);
+ts_rank
+-----------
+0.0985008553
+
+
+select ts_rank(
+  to_tsvector('english', 'This department delivers the actual product to customers') , 
+  to_tsquery('english', 'project')
+);
+ts_rank
+-----------
+0
+
+***<-> to match the tokens immediately one after the other.
+
+testdb=# select title,content from news where
+to_tsvector('english',content)
+@@
+to_tsquery('english','foundational<->models');
+
+             title             |                                    content                                    
+-------------------------------+-------------------------------------------------------------------------------
+ Machine Learning from scratch | Bare bones implementations of some of the foundational models and algorithms.
+(1 row)
+
+Performance Improvement on Full-Text Search
+Create a separate column for normalized vectors in same table or use materialized views and use index(GIN) on them for searching
+
+
+
+
+
+
+
+
+
+
+ 

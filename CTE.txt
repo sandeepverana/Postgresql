@@ -1,0 +1,96 @@
+Common Table Expressions or CTEs, can be thought of as defining temporary tables that exist just for one query. 
+CTEs are similar to a view that is materialized only while that query is running and does not exist outside of that query. 
+Allows large queries to be more readable.
+Simplifies complex queries and joins
+
+Postgres will evaluate the query inside the CTE and store the results in a temporary table
+
+postgres=# create table foo (id int, padding text);
+CREATE TABLE
+postgres=# insert into foo (id, padding) select id, md5(random()::text) from generate_series(1, 1000000) as id order by random();
+
+INSERT 0 1000000
+
+postgres=# with cte as (select * from foo) select * from cte where id = 500000;
+   id   |             padding              
+--------+----------------------------------
+ 500000 | a61e648432b2197021d534e80cd8ebd2
+(1 row)
+
+
+testdb=# select * from cmr_employee;
+ eid  |   ename    |    sal    | dept | mgr_id 
+------+------------+-----------+------+--------
+ 1001 | ram        |  55000.00 | hr   |       
+ 1002 | tom        |  65000.00 | pr   |       
+ 1003 | sai kumar  |  35000.00 | hr   |   1001
+ 1004 | rana singh |  45000.00 | hr   |   1001
+ 1005 | peter      |  85000.00 | pr   |   1002
+ 1006 | balu       |  43000.00 | pr   |   1002
+ 1007 | anand      |  35000.00 | hr   |   1003
+ 1008 | ravi       | 125000.00 | hr   |   1004
+(8 rows)
+
+
+testdb=# with emp_sal_level as (
+select eid,ename,case when sal<40000 then 'LOW'
+when sal between 40000 and 80000 then 'MEDIUM'
+else 'HIGH'
+end as sal_level from cmr_employee ) select eid,ename,sal_level from emp_sal_level where sal_level='MEDIUM';
+ eid  |   ename    | sal_level 
+------+------------+-----------
+ 1001 | ram        | MEDIUM
+ 1002 | tom        | MEDIUM
+ 1004 | rana singh | MEDIUM
+ 1006 | balu       | MEDIUM
+(4 rows)
+
+Display employee details with manager name of all employee
+
+testdb=# with emp_join_cte as (
+testdb(# select * from cmr_employee)
+testdb-# select e.eid,e.ename,e.sal,e.dept,cte.ename from cmr_employee e LEFT JOIN emp_join_cte cte on e.mgr_id=cte.eid;
+ eid  |   ename    |    sal    | dept |   ename    
+------+------------+-----------+------+------------
+ 1001 | ram        |  55000.00 | hr   | 
+ 1002 | tom        |  65000.00 | pr   | 
+ 1003 | sai kumar  |  35000.00 | hr   | ram
+ 1004 | rana singh |  45000.00 | hr   | ram
+ 1005 | peter      |  85000.00 | pr   | tom
+ 1006 | balu       |  43000.00 | pr   | tom
+ 1007 | anand      |  35000.00 | hr   | sai kumar
+ 1008 | ravi       | 125000.00 | hr   | rana singh
+(8 rows)
+
+
+Recursive CTEs allow themselves to be called until some condition is met.
+Recursive queries are typically used to deal with hierarchical or tree-structured data.
+
+Syntax:
+with recursive_name (columns) as(
+ <initial query>
+union all
+<recursive query>
+)
+<query>
+
+Display the employee who are working under ram
+
+testdb=# WITH RECURSIVE manager_tree AS (
+select eid,ename,mgr_id from cmr_employee where eid=1001 
+UNION ALL
+select e.eid,e.ename,e.mgr_id from cmr_employee e INNER JOIN manager_tree mtree on e.mgr_id=mtree.eid)
+select * from manager_tree;
+
+ eid  |   ename    | mgr_id 
+------+------------+--------
+ 1001 | ram        |       
+ 1003 | sai kumar  |   1001
+ 1004 | rana singh |   1001
+ 1007 | anand      |   1003
+ 1008 | ravi       |   1004
+(5 rows)
+
+
+
+
