@@ -1,0 +1,133 @@
+A trigger is a named database object that is associated with a table, 
+and it activates when a particular event (e.g. an insert, update or delete) occurs for the table/views. 
+
+testdb=# select * from products;
+ prod_id |     prod_name     |  price   | cid 
+---------+-------------------+----------+-----
+    1001 | ACER ASPIRE       | 33000.00 |   1
+    1002 | DELL INSPIRON     | 43000.00 |   1
+    1003 | LENOVE IDEAPAD    | 18000.00 |   1
+    1004 | SAMSUNG GALAXY S9 | 35000.00 |   2
+    1005 | IPHONE 7          | 60000.00 |   2
+    1006 | HONOR 6X          |  9000.00 |   2
+    1007 | NOKIA 1100        |  4000.00 |    
+(7 rows)
+
+
+---------------------------------------------------_AFTER INSERT-----------------------------------------------
+testdb=# create or replace function product_audit_func() returns trigger as $$
+BEGIN
+insert into product_audit values(NEW.prod_id,current_timestamp);
+return new;
+END;
+$$ language plpgsql;
+CREATE FUNCTION
+
+testdb=# create TRIGGER product_trigger AFTER INSERT on products for each row execute procedure product_audit_func();
+CREATE TRIGGER
+
+testdb=# insert into products(prod_name,price,cid) values('REAL ME',15000,2);
+INSERT 0 1
+
+testdb=# select * from products;
+ prod_id |     prod_name     |  price   | cid 
+---------+-------------------+----------+-----
+    1001 | ACER ASPIRE       | 33000.00 |   1
+    1002 | DELL INSPIRON     | 43000.00 |   1
+    1003 | LENOVE IDEAPAD    | 18000.00 |   1
+    1004 | SAMSUNG GALAXY S9 | 35000.00 |   2
+    1005 | IPHONE 7          | 60000.00 |   2
+    1006 | HONOR 6X          |  9000.00 |   2
+    1007 | NOKIA 1100        |  4000.00 |    
+    1008 | REAL ME           | 15000.00 |   2
+(8 rows)
+
+
+testdb=# select * from product_audit;
+  id  |         entry_date         
+------+----------------------------
+ 1008 | 2020-02-12 15:16:39.594311
+(1 row)
+
+testdb=# alter table product_audit add trigger_name text;
+ALTER TABLE
+
+testdb=# alter table product_audit add operation text;
+ALTER TABLE
+
+testdb=# create or replace function product_audit_func() returns trigger as $$
+BEGIN
+insert into product_audit values(NEW.prod_id,current_timestamp,TG_NAME,TG_OP);
+return new;
+END;
+$$ language plpgsql;
+CREATE FUNCTION
+
+testdb=# insert into products(prod_name,price,cid) values('OPPO',25000,2);
+INSERT 0 1
+
+testdb=# select * from product_audit;
+  id  |        entry_date         |  trigger_name   | operation 
+------+---------------------------+-----------------+-----------
+ 1009 | 2020-02-12 15:21:12.32357 | product_trigger | INSERT
+(1 row)
+
+-----------------------------------------BEFORE INSERT OR UPDATE ----------------------------------
+
+testdb=# create or replace function price_validator() returns trigger as $$
+BEGIN
+if NEW.cid=1 and NEW.price<15000 then
+raise EXCEPTION 'Price of computer should be greater than 15000';
+elseif NEW.cid=2 and NEW.price<500 then
+raise EXCEPTION 'Price of mobile should be > 500';
+end IF;
+return new;
+END;
+$$ language plpgsql;
+CREATE FUNCTION
+
+testdb=# create trigger price_validator_trigger before insert or update on products for each row execute procedure price_validator();
+CREATE TRIGGER
+
+testdb=# insert into products(prod_name,price,cid) values('MACBOOK AIR',14000,1);
+ERROR:  Price of computer should be greater than 15000
+
+testdb=# insert into products(prod_name,price,cid) values('ONE PLUS 7',200,2);
+ERROR:  Price of mobile should be > 500
+
+
+-------------------------------------------------AFTER DELETE------------------------------------------------
+For DELETE operation we should use OLD 
+create or replace function product_audit_del_func() returns trigger as $$
+BEGIN
+insert into product_audit values(OLD.prod_id,current_timestamp,TG_NAME,TG_OP);
+return new;
+END;
+$$ language plpgsql;
+CREATE FUNCTION
+
+testdb=# create trigger product_del_trigger AFTER DELETE on products for each row execute procedure product_audit_del_func();
+CREATE TRIGGER
+
+testdb=# delete from products where prod_id=1014;
+DELETE 1
+
+testdb=# select * from product_audit;
+  id  |         entry_date         |    trigger_name     | operation 
+------+----------------------------+---------------------+-----------
+ 1009 | 2020-02-12 15:21:12.32357  | product_trigger     | INSERT
+ 1014 | 2020-02-12 15:38:04.442649 | product_trigger     | INSERT
+ 1014 | 2020-02-12 15:50:37.742463 | product_del_trigger | DELETE
+(3 rows)
+
+
+
+Reference
+https://w3resource.com/PostgreSQL/postgresql-triggers.php
+https://severalnines.com/database-blog/postgresql-triggers-and-stored-function-basics
+
+
+
+
+
+
