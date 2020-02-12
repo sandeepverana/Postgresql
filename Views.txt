@@ -83,7 +83,15 @@ testdb=# select * from part_view;
 
 Time: 2.937 ms
 
+When you refresh data for a materialized view, 
+PosgreSQL locks the entire table therefore you cannot query data against it.
 
+REFRESH MATERIALIZED VIEW CONCURRENTLY view_name;
+
+With CONCURRENTLY option, PostgreSQL creates a temporary updated version of the materialized view, 
+compares two versions, and performs INSERT and UPDATE only the differences. 
+You can query against the materialized view while it is being updated. 
+One requirement for using CONCURRENTLY option is that the materialized view must have a UNIQUE index. 
 
 
 
