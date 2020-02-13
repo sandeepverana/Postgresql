@@ -1,0 +1,394 @@
+An aggregate function aggregates data from a set of rows into a single row.
+To apply the aggregate function to subsets of rows, you use the GROUP BY clause.
+Aggregate functions reduces the number of rows returned by the queries 
+
+Similar to an aggregate function, a window function operates on a set of rows. 
+However, it does not reduce the number of rows returned by the query.
+
+The term window describes the set of rows on which the window function operates. 
+A window function returns values from the rows in a window.
+
+window_function(arg1, arg2,..) OVER (
+   [PARTITION BY partition_expression]
+   [ORDER BY sort_expression [ASC | DESC] [NULLS {FIRST | LAST }]
+   [frame_clause] )
+   
+PARTITION BY clause
+The PARTITION BY clause divides rows into multiple groups or partitions to which the window function is applied. 
+Like the example above, we used the product group to divide the products into groups (or partitions).
+
+The PARTITION BY clause is optional. 
+If you skip the PARTITION BY clause, the window function will treat the whole result set as a single partition.
+
+ORDER BY clause
+The ORDER BY clause specifies the order of rows in each partition to which the window function is applied.
+
+The ORDER BY clause uses the NULLS FIRST or NULLS LAST option to specify whether
+nullable values should be first or last in the result set. The default is NULLS LAST option.
+
+ frame_clause
+The frame_clause defines a subset of rows in the current partition to which the window function is applied. 
+This subset of rows is called a frame.
+
+testdb=# select * from products;
+ prod_id |     prod_name     |  price   | cid 
+---------+-------------------+----------+-----
+    1001 | ACER ASPIRE       | 33000.00 |   1
+    1002 | DELL INSPIRON     | 43000.00 |   1
+    1003 | LENOVE IDEAPAD    | 18000.00 |   1
+    1004 | SAMSUNG GALAXY S9 | 35000.00 |   2
+    1005 | IPHONE 7          | 60000.00 |   2
+    1006 | HONOR 6X          |  9000.00 |   2
+    1007 | NOKIA 1100        |  4000.00 |    
+    1008 | REAL ME           | 15000.00 |   2
+    1009 | OPPO              | 25000.00 |   2
+    1015 | VIVO V9           | 15000.00 |   2
+(10 rows)
+
+testdb=# select * from category;
+ cat_id | cat_name 
+--------+----------
+      1 | COMPUTER
+      2 | MOBILE
+      3 | FASHION
+(3 rows)
+
+*****Some of thw window functions provided by Postgres:
+All aggregate functions AVG(), MIN(), MAX(), SUM(), and COUNT() can be used as window functions.
+
+CUME_DIST		Return the relative rank of the current row.
+DENSE_RANK		Rank the current row within its partition without gaps.
+FIRST_VALUE		Return a value evaluated against the first row within its partition.
+LAG				Return a value evaluated at the row that is at a specified physical offset row before the current row within the partition.
+LAST_VALUE		Return a value evaluated against the last row within its partition.
+LEAD			Return a value evaluated at the row that is offset rows after the current row within the partition.
+NTILE			Divide rows in a partition as equally as possible and assign each row an integer starting from 1 to the argument value.
+NTH_VALUE		Return a value evaluated against the nth row in an ordered partition.
+PERCENT_RANK	Return the relative rank of the current row (rank-1) / (total rows – 1)
+RANK			Rank the current row within its partition with gaps.
+ROW_NUMBER		Number the current row within its partition starting from 1.
+
+***Without window function
+
+testdb=# select cat_name,AVG(price) from products p inner join category c on p.cid=c.cat_id group by cat_name;
+ cat_name |        avg         
+----------+--------------------
+ MOBILE   | 26500.000000000000
+ COMPUTER | 31333.333333333333
+(2 rows)
+
+***WITH window function
+
+testdb=# select prod_id,prod_name,price,cat_name,AVG(price) OVER
+( PARTITION BY cat_name ) from products p inner join category c on p.cid=c.cat_id
+
+ prod_id |     prod_name     |  price   | cat_name |        avg         
+---------+-------------------+----------+----------+--------------------
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER | 31333.333333333333
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER | 31333.333333333333
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER | 31333.333333333333
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE   | 26500.000000000000
+    1005 | IPHONE 7          | 60000.00 | MOBILE   | 26500.000000000000
+    1006 | HONOR 6X          |  9000.00 | MOBILE   | 26500.000000000000
+    1008 | REAL ME           | 15000.00 | MOBILE   | 26500.000000000000
+    1009 | OPPO              | 25000.00 | MOBILE   | 26500.000000000000
+    1015 | VIVO V9           | 15000.00 | MOBILE   | 26500.000000000000
+(9 rows)
+
+----Rounded values
+testdb=# select cat_name,round(AVG(price),2) from products p inner join category c on p.cid=c.cat_id group by cat_name;
+ cat_name |  round   
+----------+----------
+ MOBILE   | 26500.00
+ COMPUTER | 31333.33
+(2 rows)
+
+testdb=# select prod_id,prod_name,price,cat_name,round(AVG(price) OVER
+ ( PARTITION BY cat_name ),2) from products p inner join category c on p.cid=c.cat_id;
+ prod_id |     prod_name     |  price   | cat_name |  round   
+---------+-------------------+----------+----------+----------
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER | 31333.33
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER | 31333.33
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER | 31333.33
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE   | 26500.00
+    1005 | IPHONE 7          | 60000.00 | MOBILE   | 26500.00
+    1006 | HONOR 6X          |  9000.00 | MOBILE   | 26500.00
+    1008 | REAL ME           | 15000.00 | MOBILE   | 26500.00
+    1009 | OPPO              | 25000.00 | MOBILE   | 26500.00
+    1015 | VIVO V9           | 15000.00 | MOBILE   | 26500.00
+(9 rows)
+
+
+------------------------------------------------- ROW_NUMBER() vs RANK() vs DENSE_RANK()------------------------
+### ROW_NUMBER()
+Number the current row within its partition starting from 1.
+
+testdb=# select prod_id,prod_name,cat_name,price,
+ROW_NUMBER () over ( PARTITION by cat_name order by price)
+from products p INNER JOIN category c on p.cid=c.cat_id;
+ prod_id |     prod_name     | cat_name |  price   | row_number 
+---------+-------------------+----------+----------+------------
+    1003 | LENOVE IDEAPAD    | COMPUTER | 18000.00 |          1
+    1001 | ACER ASPIRE       | COMPUTER | 33000.00 |          2
+    1002 | DELL INSPIRON     | COMPUTER | 43000.00 |          3
+    1006 | HONOR 6X          | MOBILE   |  9000.00 |          1
+    1015 | VIVO V9           | MOBILE   | 15000.00 |          2
+    1008 | REAL ME           | MOBILE   | 15000.00 |          3
+    1009 | OPPO              | MOBILE   | 25000.00 |          4
+    1004 | SAMSUNG GALAXY S9 | MOBILE   | 35000.00 |          5
+    1005 | IPHONE 7          | MOBILE   | 60000.00 |          6
+(9 rows)
+
+### RANK()
+Rank the current row within its partition with gaps.
+
+testdb=# select prod_id,prod_name,cat_name,price,
+RANK () over ( PARTITION by cat_name order by price)
+from products p INNER JOIN category c on p.cid=c.cat_id;
+
+ prod_id |     prod_name     | cat_name |  price   | rank 
+---------+-------------------+----------+----------+------
+    1003 | LENOVE IDEAPAD    | COMPUTER | 18000.00 |    1
+    1001 | ACER ASPIRE       | COMPUTER | 33000.00 |    2
+    1002 | DELL INSPIRON     | COMPUTER | 43000.00 |    3
+    1006 | HONOR 6X          | MOBILE   |  9000.00 |    1
+    1015 | VIVO V9           | MOBILE   | 15000.00 |    2
+    1008 | REAL ME           | MOBILE   | 15000.00 |    2
+    1009 | OPPO              | MOBILE   | 25000.00 |    4
+    1004 | SAMSUNG GALAXY S9 | MOBILE   | 35000.00 |    5
+    1005 | IPHONE 7          | MOBILE   | 60000.00 |    6
+(9 rows)
+
+### DENSE_RANK()
+Rank the current row within its partition without gaps.
+
+testdb=# select prod_id,prod_name,cat_name,price,
+DENSE_RANK () over ( PARTITION by cat_name order by price)
+from products p INNER JOIN category c on p.cid=c.cat_id;
+
+ prod_id |     prod_name     | cat_name |  price   | dense_rank 
+---------+-------------------+----------+----------+------------
+    1003 | LENOVE IDEAPAD    | COMPUTER | 18000.00 |          1
+    1001 | ACER ASPIRE       | COMPUTER | 33000.00 |          2
+    1002 | DELL INSPIRON     | COMPUTER | 43000.00 |          3
+    1006 | HONOR 6X          | MOBILE   |  9000.00 |          1
+    1015 | VIVO V9           | MOBILE   | 15000.00 |          2
+    1008 | REAL ME           | MOBILE   | 15000.00 |          2
+    1009 | OPPO              | MOBILE   | 25000.00 |          3
+    1004 | SAMSUNG GALAXY S9 | MOBILE   | 35000.00 |          4
+    1005 | IPHONE 7          | MOBILE   | 60000.00 |          5
+(9 rows)
+
+
+--------------------------------------------FIRST_VALUE() vs LAST_VALUE()-------------------------
+
+### FIRST_VALUE()
+Returns a value evaluated against the first row within its partition
+
+testdb=# select prod_id,prod_name,price,cat_name,FIRST_VALUE(price) OVER
+ ( PARTITION BY cat_name order by price) as LOWEST_PRICE_PER_GROUP from products p inner join category c on p.cid=c.cat_id;
+ prod_id |     prod_name     |  price   |  cat_name  | lowest_price_per_group 
+---------+-------------------+----------+------------+------------------------
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER   |               18000.00
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER   |               18000.00
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER   |               18000.00
+    1016 | NOISE SHOTS       |  1500.00 | EAR PHONES |                1500.00
+    1017 | AIRBUDS AIR       |  3500.00 | EAR PHONES |                1500.00
+    1019 | BOAT AIR DOPES    |  5000.00 | EAR PHONES |                1500.00
+    1018 | AIRPODS           | 15000.00 | EAR PHONES |                1500.00
+    1006 | HONOR 6X          |  9000.00 | MOBILE     |                9000.00
+    1015 | VIVO V9           | 15000.00 | MOBILE     |                9000.00
+    1008 | REAL ME           | 15000.00 | MOBILE     |                9000.00
+    1009 | OPPO              | 25000.00 | MOBILE     |                9000.00
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     |                9000.00
+    1005 | IPHONE 7          | 60000.00 | MOBILE     |                9000.00
+(13 rows)
+
+
+### LAST_VALUE()
+Returns a value evaluated against the last row in its partition.
+
+-----Without adding Frame clause
+testdb=# select prod_id,prod_name,price,cat_name,LAST_VALUE(price) OVER
+ ( PARTITION BY cat_name order by price) as HIGHEST_PRICE_PER_GROUP from products p inner join category c on p.cid=c.cat_id;
+ prod_id |     prod_name     |  price   |  cat_name  | highest_price_per_group 
+---------+-------------------+----------+------------+-------------------------
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER   |                18000.00
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER   |                33000.00
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER   |                43000.00
+    1016 | NOISE SHOTS       |  1500.00 | EAR PHONES |                 1500.00
+    1017 | AIRBUDS AIR       |  3500.00 | EAR PHONES |                 3500.00
+    1019 | BOAT AIR DOPES    |  5000.00 | EAR PHONES |                 5000.00
+    1018 | AIRPODS           | 15000.00 | EAR PHONES |                15000.00
+    1006 | HONOR 6X          |  9000.00 | MOBILE     |                 9000.00
+    1015 | VIVO V9           | 15000.00 | MOBILE     |                15000.00
+    1008 | REAL ME           | 15000.00 | MOBILE     |                15000.00
+    1009 | OPPO              | 25000.00 | MOBILE     |                25000.00
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     |                35000.00
+    1005 | IPHONE 7          | 60000.00 | MOBILE     |                60000.00
+(13 rows)
+
+------With adding Frame clause
+testdb=# select prod_id,prod_name,price,cat_name,LAST_VALUE(price) OVER
+ ( PARTITION BY cat_name order by price RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as HIGHEST_PRICE_PER_GROUP from products p inner join category c on p.cid=c.cat_id;
+ prod_id |     prod_name     |  price   |  cat_name  | highest_price_per_group 
+---------+-------------------+----------+------------+-------------------------
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER   |                43000.00
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER   |                43000.00
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER   |                43000.00
+    1016 | NOISE SHOTS       |  1500.00 | EAR PHONES |                15000.00
+    1017 | AIRBUDS AIR       |  3500.00 | EAR PHONES |                15000.00
+    1019 | BOAT AIR DOPES    |  5000.00 | EAR PHONES |                15000.00
+    1018 | AIRPODS           | 15000.00 | EAR PHONES |                15000.00
+    1006 | HONOR 6X          |  9000.00 | MOBILE     |                60000.00
+    1015 | VIVO V9           | 15000.00 | MOBILE     |                60000.00
+    1008 | REAL ME           | 15000.00 | MOBILE     |                60000.00
+    1009 | OPPO              | 25000.00 | MOBILE     |                60000.00
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     |                60000.00
+    1005 | IPHONE 7          | 60000.00 | MOBILE     |                60000.00
+(13 rows)
+
+Notice that we added the frame clause RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING 
+because by default the frame clause is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW.
+
+
+--------------------------------------------------LAG() vs LEAD()----------------------------------------------
+The LAG() function has the ability to access data from the previous row, while the LEAD() function can access data from the next row.
+
+Syntax:
+LAG/LEAD (expression [,offset] [,default])
+
+expression – a column or expression to compute the returned value.
+offset – the number of rows preceding ( LAG)/ following ( LEAD) the current row. It defaults to 1.
+default – the default returned value if the offset goes beyond the scope of the window. The default is NULL if you skip it.
+
+testdb=# select prod_name,cat_name,price,
+LAG(price,1) over ( PARTITION BY cat_name order by price) as prev_price,
+price-LAG(price,1) over ( PARTITION BY cat_name order by price) as cur_prev_dif 
+from products p inner join category c on p.cid=c.cat_id;
+
+     prod_name     |  cat_name  |  price   | prev_price | cur_prev_dif 
+-------------------+------------+----------+------------+--------------
+ LENOVE IDEAPAD    | COMPUTER   | 18000.00 |            |             
+ ACER ASPIRE       | COMPUTER   | 33000.00 |   18000.00 |     15000.00
+ DELL INSPIRON     | COMPUTER   | 43000.00 |   33000.00 |     10000.00
+ NOISE SHOTS       | EAR PHONES |  1500.00 |            |             
+ AIRBUDS AIR       | EAR PHONES |  3500.00 |    1500.00 |      2000.00
+ BOAT AIR DOPES    | EAR PHONES |  5000.00 |    3500.00 |      1500.00
+ AIRPODS           | EAR PHONES | 15000.00 |    5000.00 |     10000.00
+ HONOR 6X          | MOBILE     |  9000.00 |            |             
+ VIVO V9           | MOBILE     | 15000.00 |    9000.00 |      6000.00
+ REAL ME           | MOBILE     | 15000.00 |   15000.00 |         0.00
+ OPPO              | MOBILE     | 25000.00 |   15000.00 |     10000.00
+ SAMSUNG GALAXY S9 | MOBILE     | 35000.00 |   25000.00 |     10000.00
+ IPHONE 7          | MOBILE     | 60000.00 |   35000.00 |     25000.00
+(13 rows)
+
+testdb=# select prod_name,cat_name,price,
+LEAD(price,1) over ( PARTITION BY cat_name order by price) as next_price,
+price-LEAD(price,1) over ( PARTITION BY cat_name order by price) as cur_next_dif 
+from products p inner join category c on p.cid=c.cat_id;
+
+     prod_name     |  cat_name  |  price   | next_price | cur_next_dif 
+-------------------+------------+----------+------------+--------------
+ LENOVE IDEAPAD    | COMPUTER   | 18000.00 |   33000.00 |    -15000.00
+ ACER ASPIRE       | COMPUTER   | 33000.00 |   43000.00 |    -10000.00
+ DELL INSPIRON     | COMPUTER   | 43000.00 |            |             
+ NOISE SHOTS       | EAR PHONES |  1500.00 |    3500.00 |     -2000.00
+ AIRBUDS AIR       | EAR PHONES |  3500.00 |    5000.00 |     -1500.00
+ BOAT AIR DOPES    | EAR PHONES |  5000.00 |   15000.00 |    -10000.00
+ AIRPODS           | EAR PHONES | 15000.00 |            |             
+ HONOR 6X          | MOBILE     |  9000.00 |   15000.00 |     -6000.00
+ VIVO V9           | MOBILE     | 15000.00 |   15000.00 |         0.00
+ REAL ME           | MOBILE     | 15000.00 |   25000.00 |    -10000.00
+ OPPO              | MOBILE     | 25000.00 |   35000.00 |    -10000.00
+ SAMSUNG GALAXY S9 | MOBILE     | 35000.00 |   60000.00 |    -25000.00
+ IPHONE 7          | MOBILE     | 60000.00 |            |             
+(13 rows)
+
+
+------------------------------------------------NTH_VALUE()---------------------------
+The NTH_VALUE() function returns a value from the nth row in an ordered partition of a result set.
+
+
+---NTH_VALUE() function to return all products together with the most expensive product:
+
+testdb=# select prod_id,prod_name,price,cat_name,
+NTH_VALUE(price,1) over (partition by cat_name order by price desc range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING)  "Top end" 
+from products p inner join category c on p.cid=c.cat_id;
+
+ prod_id |     prod_name     |  price   |  cat_name  | Top end  
+---------+-------------------+----------+------------+----------
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER   | 43000.00
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER   | 43000.00
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER   | 43000.00
+    1018 | AIRPODS           | 15000.00 | EAR PHONES | 15000.00
+    1019 | BOAT AIR DOPES    |  5000.00 | EAR PHONES | 15000.00
+    1017 | AIRBUDS AIR       |  3500.00 | EAR PHONES | 15000.00
+    1016 | NOISE SHOTS       |  1500.00 | EAR PHONES | 15000.00
+    1005 | IPHONE 7          | 60000.00 | MOBILE     | 60000.00
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     | 60000.00
+    1009 | OPPO              | 25000.00 | MOBILE     | 60000.00
+    1015 | VIVO V9           | 15000.00 | MOBILE     | 60000.00
+    1008 | REAL ME           | 15000.00 | MOBILE     | 60000.00
+    1006 | HONOR 6X          |  9000.00 | MOBILE     | 60000.00
+(13 rows)
+
+---NTH_VALUE() function to return all product names  together with the most second expensive product
+
+testdb=# select prod_id,prod_name,price,cat_name,
+NTH_VALUE(prod_name,2) over (partition by cat_name order by price desc range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING)  "Second Top end" 
+from products p inner join category c on p.cid=c.cat_id;
+
+ prod_id |     prod_name     |  price   |  cat_name  |  Second Top end   
+---------+-------------------+----------+------------+-------------------
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER   | ACER ASPIRE
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER   | ACER ASPIRE
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER   | ACER ASPIRE
+    1018 | AIRPODS           | 15000.00 | EAR PHONES | BOAT AIR DOPES
+    1019 | BOAT AIR DOPES    |  5000.00 | EAR PHONES | BOAT AIR DOPES
+    1017 | AIRBUDS AIR       |  3500.00 | EAR PHONES | BOAT AIR DOPES
+    1016 | NOISE SHOTS       |  1500.00 | EAR PHONES | BOAT AIR DOPES
+    1005 | IPHONE 7          | 60000.00 | MOBILE     | SAMSUNG GALAXY S9
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     | SAMSUNG GALAXY S9
+    1009 | OPPO              | 25000.00 | MOBILE     | SAMSUNG GALAXY S9
+    1015 | VIVO V9           | 15000.00 | MOBILE     | SAMSUNG GALAXY S9
+    1008 | REAL ME           | 15000.00 | MOBILE     | SAMSUNG GALAXY S9
+    1006 | HONOR 6X          |  9000.00 | MOBILE     | SAMSUNG GALAXY S9
+(13 rows)
+
+---NTH_VALUE() function to return all product names  together with the seond most expensive product and its price
+
+testdb=# with temp as (select prod_id,prod_name,price,cat_name,
+NTH_VALUE(prod_name,2) over (partition by cat_name order by price desc range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING)  "second"
+from products p inner join category c on p.cid=c.cat_id)
+select t.*,pr.price from temp t inner join products pr on t.second = pr.prod_name ;
+
+prod_id |     prod_name     |  price   |  cat_name  |      second       |  price   
+---------+-------------------+----------+------------+-------------------+----------
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER   | ACER ASPIRE       | 33000.00
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER   | ACER ASPIRE       | 33000.00
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER   | ACER ASPIRE       | 33000.00
+    1006 | HONOR 6X          |  9000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1008 | REAL ME           | 15000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1015 | VIVO V9           | 15000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1009 | OPPO              | 25000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1005 | IPHONE 7          | 60000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1016 | NOISE SHOTS       |  1500.00 | EAR PHONES | BOAT AIR DOPES    |  5000.00
+    1017 | AIRBUDS AIR       |  3500.00 | EAR PHONES | BOAT AIR DOPES    |  5000.00
+    1019 | BOAT AIR DOPES    |  5000.00 | EAR PHONES | BOAT AIR DOPES    |  5000.00
+    1018 | AIRPODS           | 15000.00 | EAR PHONES | BOAT AIR DOPES    |  5000.00
+(13 rows)
+
+( or )
+
+with temp as (select prod_id,prod_name,price,cat_name,
+NTH_VALUE(prod_name,2) over (partition by cat_name order by price desc range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING)  "second"
+from products p inner join category c on p.cid=c.cat_id)
+select t.*,pr.price from temp t inner join products pr on t.second = pr.prod_name inner join category ca on ca.cat_name = t.cat_name ;
+
+
+
+
+
