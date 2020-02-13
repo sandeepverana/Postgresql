@@ -1,0 +1,84 @@
+
+-------------------------------DISTINCT-----------------------
+The DISTINCT clause is used in the SELECT statement to remove duplicate rows from a result set
+
+testdb=# select * from colors;
+ id | bcolor | fcolor 
+----+--------+--------
+  1 | red    | red
+  2 | red    | red
+  3 | red    | 
+  4 |        | red
+  5 | red    | green
+  6 | red    | blue
+  7 | green  | red
+  8 | green  | blue
+  9 | green  | green
+ 10 | blue   | red
+ 11 | blue   | green
+ 12 | blue   | blue
+ 13 | blue   | blue
+(13 rows)
+
+testdb=# select distinct bcolor from colors;
+ bcolor 
+--------
+ 
+ blue
+ green
+ red
+(4 rows)
+
+If you specify multiple columns, the DISTINCT clause will evaluate the duplicate based on the combination of values of these columns.
+testdb=# select distinct bcolor,fcolor  from colors order by bcolor,fcolor;
+ bcolor | fcolor 
+--------+--------
+ blue   | blue
+ blue   | green
+ blue   | red
+ green  | blue
+ green  | green
+ green  | red
+ red    | blue
+ red    | green
+ red    | red
+ red    | 
+        | red
+(11 rows)
+
+
+
+----------------------------------------------------DISTINCT ON--------------------------
+PostgreSQL also provides the DISTINCT ON (expression) to keep the “first” row of each group of duplicates using the following syntax:
+
+SELECT
+   DISTINCT ON (column_1) column_alias,
+   column_2
+FROM
+   table_name
+ORDER BY
+   column_1,
+   column_2;
+   
+The order of rows returned from the SELECT statement is unpredictable therefore the “first” row of each group of the duplicate is also unpredictable. 
+It is good practice to always use the ORDER BY clause with the DISTINCT ON(expression) to make the result set obvious.
+
+Notice that the DISTINCT ON expression must match the leftmost expression in the ORDER BY clause.
+
+testdb=# select distinct on(bcolor) bcolor,fcolor from colors order by bcolor,fcolor;
+ bcolor | fcolor 
+--------+--------
+ blue   | blue
+ green  | blue
+ red    | blue
+        | red
+(4 rows)
+
+For each unique bcolor value,it would return only the first unique bcolor it encounters based on ORDER BY clause along with fcolor value
+
+
+
+Reference
+https://www.postgresqltutorial.com/postgresql-select-distinct/
+https://www.techonthenet.com/postgresql/distinct.php
+
