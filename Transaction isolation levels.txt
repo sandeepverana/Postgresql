@@ -20,32 +20,30 @@ postgres=# select * from t;
 ---+---
 (0 rows)
 
-----------------------------------------------------------------------
-				T1					|				T2
-----------------------------------------------------------------------
-	BEGIN;
-	insert into t values(1,100);	|
-	select * from t;				|							
-									|
-	a |  b  						|
-	---+-----						|
-	1 | 100							|
-	(1 row)							|	
-									|	select * from t;		
-									|
-									|		a |  b  
-									|		---+-----
-									|		  | 
-									|		(0 row)				
-									|	
-	commit;							|
-									|	select * from t;				
-									|
-									|	a |  b  
-									|	---+-----
-									|	1 | 100
-									|	(1 row)					
-									|
+
+T1:	BEGIN;
+T1:	insert into t values(1,100);	
+T1:	select * from t;											
+									
+	a |  b  						
+	---+-----						
+	1 | 100							
+	(1 row)								
+								T2:	select * from t;		
+
+										a |  b  
+										---+-----
+										  | 
+										(0 row)				
+
+T1:	commit;							
+								T2:	select * from t;				
+
+									a |  b  
+									---+-----
+									1 | 100
+									(1 row)					
+									
 -----------------------------------------------------------------------
 
  The second transaction could not read the first transaction’s as-yet-uncommitted data.
@@ -71,13 +69,13 @@ T1:	postgres=# select * from t;
 	 1 | 100
 	(1 row)
 
-												T2:	postgres=# begin;
-													BEGIN
-												T2:	postgres=# select * from t;
-													 a |  b  
-													---+-----
-													 1 | 100
-													(1 row)
+										T2:	postgres=# begin;
+											BEGIN
+										T2:	postgres=# select * from t;
+											 a |  b  
+											---+-----
+											 1 | 100
+											(1 row)
 
 T1:	postgres=# update t set b=200 where a=1;
 	UPDATE 1
@@ -87,20 +85,20 @@ T1:	postgres=# select * from t;
  1 | 200
 (1 row)
 
-												T2:	postgres=# select * from t;
-													 a |  b  
-													---+-----
-													 1 | 100
-													(1 row)
+										T2:	postgres=# select * from t;
+											 a |  b  
+											---+-----
+											 1 | 100
+											(1 row)
 
 T1:	postgres=# commit;
 	COMMIT
 
-												T2:	postgres=# select * from t;
-													 a |  b  
-													---+-----
-													 1 | 200
-													(1 row)
+										T2:	postgres=# select * from t;
+											 a |  b  
+											---+-----
+											 1 | 200
+											(1 row)
 
 
 ***With  Repeatable read isolation
@@ -114,21 +112,21 @@ T1:	postgres=# select * from t;
 	 1 | 100
 	(1 row)
 
-																	T2:	postgres=# begin;
-																		BEGIN
-																	T2:	postgres=# select * from t;
-																		 a |  b  
-																		---+-----
-																		 1 | 100
-																		(1 row)
+										T2:	postgres=# begin;
+											BEGIN
+										T2:	postgres=# select * from t;
+											 a |  b  
+											---+-----
+											 1 | 100
+											(1 row)
 																		
-																	T2:	postgres=# update t set b=200 where a=1;
-																		UPDATE 1
-																	T2:	postgres=# select * from t;
-																	 a |  b  
-																	---+-----
-																	 1 | 200
-																	(1 row)
+										T2:	postgres=# update t set b=200 where a=1;
+											UPDATE 1
+										T2:	postgres=# select * from t;
+										 a |  b  
+										---+-----
+										 1 | 200
+										(1 row)
 T1:	postgres=# select * from t;
  a |  b  
 ---+-----
@@ -136,8 +134,8 @@ T1:	postgres=# select * from t;
 (1 row)
 
 
-																	T2:	postgres=# commit;
-																		COMMIT
+										T2:	postgres=# commit;
+											COMMIT
 																		
 T1:	postgres=# select * from t;
  a |  b  
@@ -161,24 +159,24 @@ T1:	postgres=# select * from t;
 	 1 | 100
 	(1 row)
 
-												T2:	postgres=# begin;
-													BEGIN
-												T2:	postgres=# select * from t;
-													 a |  b  
-													---+-----
-													 1 | 100
-													(1 row)
+										T2:	postgres=# begin;
+											BEGIN
+										T2:	postgres=# select * from t;
+											 a |  b  
+											---+-----
+											 1 | 100
+											(1 row)
 
 T1:	postgres=# update t set b=200 where a=1;
 	UPDATE 1
-												T2:	postgres=# update t set b=300 where a=1;
+										T2:	postgres=# update t set b=300 where a=1;
 
 T1:	postgres=# commit;
 	COMMIT												
-												T2:			UPDATE 1	
-												
-												T2:	postgres=# commit;
-															COMMIT
+										T2:			UPDATE 1	
+
+										T2:	postgres=# commit;
+													COMMIT
 															
 T1:	postgres=# select * from t;
 	 a |  b  
@@ -186,13 +184,13 @@ T1:	postgres=# select * from t;
 	 1 | 300
 	(1 row)
 
-												T2:	postgres=# begin;
-													BEGIN
-												T2:	postgres=# select * from t;
-													 a |  b  
-													---+-----
-													 1 | 300
-													(1 row)															
+										T2:	postgres=# begin;
+											BEGIN
+										T2:	postgres=# select * from t;
+											 a |  b  
+											---+-----
+											 1 | 300
+											(1 row)															
 
 Here the second transaction’s UPDATE blocks, because PostgreSQL places a lock to prevent another update until the first transaction is finished. 
 However, the first transaction’s change is lost, because the second one “overwrote” the row.
@@ -207,21 +205,21 @@ T1:	postgres=# select * from t;
 	 1 | 100
 	(1 row)
 
-												T2:	postgres=# begin transaction isolation level serializable;
-													BEGIN
-												T2:	postgres=# select * from t;
-													 a |  b  
-													---+-----
-													 1 | 100
-													(1 row)
+										T2:	postgres=# begin transaction isolation level serializable;
+											BEGIN
+										T2:	postgres=# select * from t;
+											 a |  b  
+											---+-----
+											 1 | 100
+											(1 row)
 
 T1:	postgres=# update t set b=200 where a=1;
 	UPDATE 1
-												T2:	postgres=# update t set b=300 where a=1;
+										T2:	postgres=# update t set b=300 where a=1;
 
 T1:	postgres=# commit;
 	COMMIT												
-												T2:		ERROR:  could not serialize access due to concurrent update
+										T2:		ERROR:  could not serialize access due to concurrent update
 
 
 
