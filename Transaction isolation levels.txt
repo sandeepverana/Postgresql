@@ -1,0 +1,229 @@
+The SQL standard defines four levels of transaction isolation.
+1. Serializble
+2. Repeatable read
+3. Read committed
+4. Read uncommitted
+
+--Every transaction has it’s isolation level set to one of these when it is created. The default level is “read committed”.
+--Note that the SQL standard also defines “read uncommitted”, which is not supported in Postgres. 
+   You have to use the nearest, higher level of “read committed”.
+
+
+********************************Read committed:************************************
+
+dirty read-A transaction trying to read uncommitted data from another transaction (concurrent transaction)
+
+---The read committed isolation level guarantees that dirty reads will never happen.
+
+postgres=# select * from t;
+ a | b 
+---+---
+(0 rows)
+
+----------------------------------------------------------------------
+				T1					|				T2
+----------------------------------------------------------------------
+	BEGIN;
+	insert into t values(1,100);	|
+	select * from t;				|							
+									|
+	a |  b  						|
+	---+-----						|
+	1 | 100							|
+	(1 row)							|	
+									|	select * from t;		
+									|
+									|		a |  b  
+									|		---+-----
+									|		  | 
+									|		(0 row)				
+									|	
+	commit;							|
+									|	select * from t;				
+									|
+									|	a |  b  
+									|	---+-----
+									|	1 | 100
+									|	(1 row)					
+									|
+-----------------------------------------------------------------------
+
+ The second transaction could not read the first transaction’s as-yet-uncommitted data.
+ In PostgreSQL, it is not possible to lower the isolation level to below this level so that dirty reads are allowed.
+ 
+ 
+ ************************************Repeatable read************************
+ 
+ ---nonrepeatable read
+ 
+ These happen when a transaction reads a row, and then reads it again a bit later but gets a different result – 
+ because the row was updated in between by another transaction. 
+ 
+ “repeatable read” will ensure that the second (or any) read will also return the same result as the first read. 
+ 
+***nonrepeatable read example
+ 
+T1:	postgres=# begin;
+	BEGIN
+T1:	postgres=# select * from t;
+	 a |  b  
+	---+-----
+	 1 | 100
+	(1 row)
+
+												T2:	postgres=# begin;
+													BEGIN
+												T2:	postgres=# select * from t;
+													 a |  b  
+													---+-----
+													 1 | 100
+													(1 row)
+
+T1:	postgres=# update t set b=200 where a=1;
+	UPDATE 1
+T1:	postgres=# select * from t;
+ a |  b  
+---+-----
+ 1 | 200
+(1 row)
+
+												T2:	postgres=# select * from t;
+													 a |  b  
+													---+-----
+													 1 | 100
+													(1 row)
+
+T1:	postgres=# commit;
+	COMMIT
+
+												T2:	postgres=# select * from t;
+													 a |  b  
+													---+-----
+													 1 | 200
+													(1 row)
+
+
+***With  Repeatable read isolation
+
+ 
+T1:	postgres=# begin transaction isolation level repeatable read;
+	BEGIN
+T1:	postgres=# select * from t;
+	 a |  b  
+	---+-----
+	 1 | 100
+	(1 row)
+
+																	T2:	postgres=# begin;
+																		BEGIN
+																	T2:	postgres=# select * from t;
+																		 a |  b  
+																		---+-----
+																		 1 | 100
+																		(1 row)
+																		
+																	T2:	postgres=# update t set b=200 where a=1;
+																		UPDATE 1
+																	T2:	postgres=# select * from t;
+																	 a |  b  
+																	---+-----
+																	 1 | 200
+																	(1 row)
+T1:	postgres=# select * from t;
+ a |  b  
+---+-----
+ 1 | 100
+(1 row)
+
+
+																	T2:	postgres=# commit;
+																		COMMIT
+																		
+T1:	postgres=# select * from t;
+ a |  b  
+---+-----
+ 1 | 100
+(1 row)
+
+
+**************************************************Serializable***************************************
+lost updates: Updates performed in one transaction can be “lost”, or overwritten by another transaction that happens to run concurrently
+
+-Serialization provides the highest level of safety
+
+lost update example
+
+T1:	postgres=# begin;
+	BEGIN
+T1:	postgres=# select * from t;
+	 a |  b  
+	---+-----
+	 1 | 100
+	(1 row)
+
+												T2:	postgres=# begin;
+													BEGIN
+												T2:	postgres=# select * from t;
+													 a |  b  
+													---+-----
+													 1 | 100
+													(1 row)
+
+T1:	postgres=# update t set b=200 where a=1;
+	UPDATE 1
+												T2:	postgres=# update t set b=300 where a=1;
+
+T1:	postgres=# commit;
+	COMMIT												
+												T2:			UPDATE 1	
+												
+												T2:	postgres=# commit;
+															COMMIT
+															
+T1:	postgres=# select * from t;
+	 a |  b  
+	---+-----
+	 1 | 300
+	(1 row)
+
+												T2:	postgres=# begin;
+													BEGIN
+												T2:	postgres=# select * from t;
+													 a |  b  
+													---+-----
+													 1 | 300
+													(1 row)															
+
+Here the second transaction’s UPDATE blocks, because PostgreSQL places a lock to prevent another update until the first transaction is finished. 
+However, the first transaction’s change is lost, because the second one “overwrote” the row.
+
+To avoid that we use serializable
+
+T1:	postgres=# begin;
+	BEGIN
+T1:	postgres=# select * from t;
+	 a |  b  
+	---+-----
+	 1 | 100
+	(1 row)
+
+												T2:	postgres=# begin transaction isolation level serializable;
+													BEGIN
+												T2:	postgres=# select * from t;
+													 a |  b  
+													---+-----
+													 1 | 100
+													(1 row)
+
+T1:	postgres=# update t set b=200 where a=1;
+	UPDATE 1
+												T2:	postgres=# update t set b=300 where a=1;
+
+T1:	postgres=# commit;
+	COMMIT												
+												T2:		ERROR:  could not serialize access due to concurrent update
+
+
+
+At this level, the commit of the first transaction fails. 
+The first transaction’s actions were based on facts that were rendered invalid by the time it was about to commit.

@@ -1,0 +1,34 @@
+COPY -a mechanism for you to bulk load data in or out of Postgres.
+
+To import entire data along with headers from csv
+
+postgres=# copy customers from '/home/sandeepa/My Data/Sql practise/temp.csv' DELIMITER ',' csv header;
+COPY 4
+
+HEADER keyword indicates that the CSV file contains a header line with column names.
+When importing data, PostgreSQL ignores the first line, which is the header line of the file.
+
+postgres=# select * from customers;
+
+id |   name   
+----+----------
+  1 | Sandeep
+  2 | Sachin
+  3 | Srinivas
+  4 | Vivek
+(4 rows)
+
+To export data from postgres to files
+
+postgres=# copy customers to '/home/sandeepa/My Data/Sql practise/customers.csv' delimiter ',' csv header;
+COPY 4
+
+To export only specific columns from postgres to files
+
+postgres=# copy customers(name) to '/home/sandeepa/My Data/Sql practise/customers.csv' delimiter ',' csv header;
+COPY 4
+
+
+
+
+
