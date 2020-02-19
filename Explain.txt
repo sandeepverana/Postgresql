@@ -1,0 +1,136 @@
+The EXPLAIN statement returns the execution plan which PostgreSQL planner generates for a given statement.
+
+EXPLAIN statement returns the start-cost before the first row can be returned and the total cost to return the complete result set.
+
+Syntax:
+
+EXPLAIN [ ( option [, ...] ) ] sql_statement;
+
+option:
+
+ANALYZE [ boolean ] -returns run time statistics
+VERBOSE [ boolean ] -shows additional information regarding the plan
+COSTS [ boolean ]   -estimated startup and total costs of each plan node, as well as the estimated number of rows and the estimated width of each row in the query plan. 
+BUFFERS [ boolean ] -adds information to the buffer usage. 
+TIMING [ boolean ]  -includes the actual startup time and time spent in each node in the output.
+SUMMARY [ boolean ] -adds summary information such as total timing after the query plan
+FORMAT { TEXT | XML | JSON | YAML } -Specify the output format of the query plan such as TEXT, XML, JSON, and YAML.
+
+
+
+dvdrental=# explain select * from film;
+                        QUERY PLAN                        
+----------------------------------------------------------
+ Seq Scan on film  (cost=0.00..64.00 rows=1000 width=384)
+(1 row)
+
+
+dvdrental=# EXPLAIN SELECT * FROM film WHERE film_id = 100;
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Index Scan using film_pkey on film  (cost=0.28..8.29 rows=1 width=384)
+   Index Cond: (film_id = 100)
+(2 rows)
+
+Time: 1.064 ms
+
+
+---To suppress the cost, you can use the COSTS option:
+
+dvdrental=# explain(costs false) select * from film where film_id=100;
+             QUERY PLAN             
+------------------------------------
+ Index Scan using film_pkey on film
+   Index Cond: (film_id = 100)
+(2 rows)
+
+---The following example displays the plan for a query that uses an aggregate function:
+dvdrental=# EXPLAIN SELECT COUNT(*) FROM film;
+
+                          QUERY PLAN                          
+--------------------------------------------------------------
+ Aggregate  (cost=66.50..66.51 rows=1 width=0)
+   ->  Seq Scan on film  (cost=0.00..64.00 rows=1000 width=0)
+(2 rows)
+
+---ANALYZE returns run time statistics
+
+dvdrental=# EXPLAIN(ANALYZE) SELECT * FROM film WHERE film_id = 100;
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Index Scan using film_pkey on film  (cost=0.28..8.29 rows=1 width=384) (actual time=0.182..0.185 rows=1 loops=1)
+   Index Cond: (film_id = 100)
+ Planning time: 0.229 ms
+ Execution time: 0.259 ms
+(4 rows)
+
+
+dvdrental=#
+EXPLAIN ANALYZE
+    SELECT
+        f.film_id,
+        title,
+        name category_name
+    FROM
+        film f
+        INNER JOIN film_category fc 
+            ON fc.film_id = f.film_id
+        INNER JOIN category c 
+            ON c.category_id = fc.category_id
+    ORDER BY
+        title;
+              
+			  							QUERY PLAN                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=171.19..173.69 rows=1000 width=87) (actual time=14.322..14.563 rows=1000 loops=1)
+   Sort Key: f.title
+   Sort Method: quicksort  Memory: 103kB
+   ->  Hash Join  (cost=29.86..121.36 rows=1000 width=87) (actual time=1.331..10.505 rows=1000 loops=1)
+         Hash Cond: (fc.category_id = c.category_id)
+         ->  Hash Join  (cost=28.50..106.25 rows=1000 width=21) (actual time=1.251..9.622 rows=1000 loops=1)
+               Hash Cond: (f.film_id = fc.film_id)
+               ->  Seq Scan on film f  (cost=0.00..64.00 rows=1000 width=19) (actual time=0.004..7.268 rows=1000 loops=1)
+               ->  Hash  (cost=16.00..16.00 rows=1000 width=4) (actual time=1.227..1.227 rows=1000 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 44kB
+                     ->  Seq Scan on film_category fc  (cost=0.00..16.00 rows=1000 width=4) (actual time=0.012..0.557 rows=1000 loops=1)
+         ->  Hash  (cost=1.16..1.16 rows=16 width=72) (actual time=0.063..0.063 rows=16 loops=1)
+               Buckets: 1024  Batches: 1  Memory Usage: 9kB
+               ->  Seq Scan on category c  (cost=0.00..1.16 rows=16 width=72) (actual time=0.040..0.050 rows=16 loops=1)
+ Planning time: 181.552 ms
+ Execution time: 14.797 ms
+(16 rows)
+
+dvdrental=# EXPLAIN        
+    SELECT
+        f.film_id,
+        title,
+        name category_name
+    FROM
+        film f
+        INNER JOIN film_category fc 
+            ON fc.film_id = f.film_id
+        INNER JOIN category c 
+            ON c.category_id = fc.category_id
+    ORDER BY
+        title;
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
+ Sort  (cost=171.19..173.69 rows=1000 width=87)
+   Sort Key: f.title
+   ->  Hash Join  (cost=29.86..121.36 rows=1000 width=87)
+         Hash Cond: (fc.category_id = c.category_id)
+         ->  Hash Join  (cost=28.50..106.25 rows=1000 width=21)
+               Hash Cond: (f.film_id = fc.film_id)
+               ->  Seq Scan on film f  (cost=0.00..64.00 rows=1000 width=19)
+               ->  Hash  (cost=16.00..16.00 rows=1000 width=4)
+                     ->  Seq Scan on film_category fc  (cost=0.00..16.00 rows=1000 width=4)
+         ->  Hash  (cost=1.16..1.16 rows=16 width=72)
+               ->  Seq Scan on category c  (cost=0.00..1.16 rows=16 width=72)
+(11 rows)
+
+
+
+
+
+
+

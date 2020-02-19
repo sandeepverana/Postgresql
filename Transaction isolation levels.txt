@@ -225,3 +225,8 @@ T1:	postgres=# commit;
 
 At this level, the commit of the first transaction fails. 
 The first transaction’s actions were based on facts that were rendered invalid by the time it was about to commit.
+
+
+
+Reference:
+https://pgdash.io/blog/postgres-transactions.html
