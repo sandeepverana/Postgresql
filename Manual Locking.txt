@@ -58,14 +58,14 @@ T1:	postgres=# begin;
 	 2 | 1000
 	(1 row)
 
-							T2:	postgres=# update t set b=2000 where a=2;
+						T2:	postgres=# update t set b=2000 where a=2;
 
 Row with a=2 is under lock
 table t cannot update that row(a=2) until T1 is committed or rollback.
 
 T1:	postgres=# commit;
 	COMMIT
-							T2:	UPDATE 1
+						T2:	UPDATE 1
 							
 
 ***SHARE LOCK
@@ -88,12 +88,12 @@ T1:	postgres=# begin;
 	postgres=# update t set b=100 where a=1;
 	UPDATE 1
  												
-										T2:	postgres=# begin;
-											BEGIN
-											postgres=# update t set b=1000 where a=2;
-											UPDATE 1
+								T2:	postgres=# begin;
+									BEGIN
+									postgres=# update t set b=1000 where a=2;
+									UPDATE 1
 											
-										T2:	postgres=# update t set b=500 where a=1;
+								T2:	postgres=# update t set b=500 where a=1;
 										
 T1:	postgres=# update t set b=5000 where a=2;
 
@@ -103,7 +103,7 @@ T1:	postgres=# update t set b=5000 where a=2;
 	HINT:  See server log for query details.
 	CONTEXT:  while updating tuple (0,14) in relation "t"
 
-										T2:	UPDATE 1
+								T2:	UPDATE 1
 
 *****************************************************ADVISORY LOCKS**************************
 
