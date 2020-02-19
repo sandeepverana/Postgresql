@@ -1,0 +1,121 @@
+ Postgres we have 3 mechanisms of locking: 
+ table-level, row-level and advisory locks. 
+ Table and row level locks can be explicit or implicit. Advisory locks are mainly explicit. 
+ Explicit locks are acquired on explicit user requests (with special queries) and implicit are acquired by standard SQL commands.
+ 
+ Locks are released at the end of transaction automatically
+ 
+ 
+ **********************************Table Level locks****************************
+ Most of the table-level locks are acquired by built-in SQL commands, but they can also be acquired explicitly with LOCK command. 
+ 
+ Syntax:
+ LOCK [ TABLE ] name IN [ lock_mode_name ] mode;
+ 
+ ACCESS SHARE – 
+ all queries that only read table acquire this lock.
+ 
+ ROW SHARE – 
+ The SELECT FOR UPDATE and SELECT FOR SHARE commands acquire this lock on target table.
+ 
+ ROW EXCLUSIVE – 
+ The UPDATE, INSERT and DELETE commands acquire this lock on target table , all queries that modify table acquire this lock.
+ 
+ SHARE UPDATE EXCLUSIVE – 
+ The VACUUM (without FULL), ANALYZE, CREATE INDEX CONCURRENTLY, and some forms of ALTER TABLE commands acquire this lock.
+ 
+ EXCLUSIVE – 
+ This lock mode allows only reads to process in parallel with transaction that acquired this lock.
+ 
+ ACCESS EXCLUSIVE – 
+ The ALTER TABLE, DROP TABLE, TRUNCATE, REINDEX, CLUSTER, and VACUUM FULL commands acquire lock on table referenced in query. This mode is default mode of LOCK command.
+ 
+ 
+ Two transactions can’t hold locks on conflicting modes on the same table at the same time.
+ Transaction is never in conflict with itself. Non-conflicting locks can be held concurrently by many transactions. 
+ 
+ ****************************ROW Level Locks************************************
+ Row-level locks: exclusive or share lock. 
+ 
+ ***EXCLUSIVE LOCK
+ An exclusive row level lock is automatically acquired when row is updated or deleted.
+ Row-level locks don’t block data querying, they block just writes to the same row.
+ Exclusive row-level lock can be acquired explicitly without the actual changing of the row with SELECT FOR UPDATE command.
+ 
+ postgres=# select * from t;
+ a |  b   
+---+------
+ 1 |  100
+ 2 | 1000
+(2 rows)
+
+
+T1:	postgres=# begin;
+	BEGIN
+	postgres=# select * from t where a=2 for update;
+	 a |  b   
+	---+------
+	 2 | 1000
+	(1 row)
+
+							T2:	postgres=# update t set b=2000 where a=2;
+
+Row with a=2 is under lock
+table t cannot update that row(a=2) until T1 is committed or rollback.
+
+T1:	postgres=# commit;
+	COMMIT
+							T2:	UPDATE 1
+							
+
+***SHARE LOCK
+Share row-level lock can be acquired with SELECT FOR SHARE command. 
+A shared lock does not prevent other transactions from acquiring the same shared lock. 
+However, no transaction is allowed to update, delete, or exclusively lock a row on which any other transaction holds a shared lock.
+
+*******************************************DEAD LOCK*********************************
+Deadlocks can occur when two transactions are waiting for each other to finish their operations.
+
+postgres=# select * from t;
+ a |  b   
+---+------
+ 2 | 2000
+ 1 |  200
+(2 rows)
+
+T1:	postgres=# begin;
+	BEGIN
+	postgres=# update t set b=100 where a=1;
+	UPDATE 1
+ 												
+										T2:	postgres=# begin;
+											BEGIN
+											postgres=# update t set b=1000 where a=2;
+											UPDATE 1
+											
+										T2:	postgres=# update t set b=500 where a=1;
+										
+T1:	postgres=# update t set b=5000 where a=2;
+
+	ERROR:  deadlock detected
+	DETAIL:  Process 8540 waits for ShareLock on transaction 1330; blocked by process 8547.
+	Process 8547 waits for ShareLock on transaction 1329; blocked by process 8540.
+	HINT:  See server log for query details.
+	CONTEXT:  while updating tuple (0,14) in relation "t"
+
+										T2:	UPDATE 1
+
+*****************************************************ADVISORY LOCKS**************************
+
+PostgreSQL provides means for creating locks that have application-defined meanings.
+These are called advisory locks. 
+As the system does not enforce their use, it is up to the application to use them correctly.
+Advisory locks can be useful for locking strategies that are an awkward fit for the MVCC model.
+
+ 
+Reference:
+https://engineering.nordeus.com/postgres-locking-revealed/
+ 
+ 
+ 
+ 
