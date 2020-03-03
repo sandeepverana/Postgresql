@@ -357,7 +357,7 @@ from products p inner join category c on p.cid=c.cat_id;
     1006 | HONOR 6X          |  9000.00 | MOBILE     | SAMSUNG GALAXY S9
 (13 rows)
 
----NTH_VALUE() function to return all product names  together with the seond most expensive product and its price
+---NTH_VALUE() function to return all product names  together with the second most expensive product and its price
 
 testdb=# with temp as (select prod_id,prod_name,price,cat_name,
 NTH_VALUE(prod_name,2) over (partition by cat_name order by price desc range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING)  "second"
