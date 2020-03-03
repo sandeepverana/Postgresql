@@ -39,7 +39,20 @@ A subquery may occur in :
 	testdb=# update employee_temp set emp_sal=emp_sal*1.10 where emp_id in (select emp_id from employee_temp where emp_dept='pr');
 	UPDATE 4
 	
-	
+
+	testdb=# select * from cmr_employee ;
+	 eid  |   ename    |    sal    | dept | mgr_id 
+	------+------------+-----------+------+--------
+	 1001 | ram        |  55000.00 | hr   |       
+	 1002 | tom        |  65000.00 | pr   |       
+	 1003 | sai kumar  |  35000.00 | hr   |   1001
+	 1004 | rana singh |  45000.00 | hr   |   1001
+	 1005 | peter      |  85000.00 | pr   |   1002
+	 1006 | balu       |  43000.00 | pr   |   1002
+	 1007 | anand      |  35000.00 | hr   |   1003
+	 1008 | ravi       | 125000.00 | hr   |   1004
+	(8 rows)
+
 -Single row subquery:
 
 	Display the employees whose salary is higher than the average salary throughout the company.
