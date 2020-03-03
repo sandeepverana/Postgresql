@@ -1,0 +1,133 @@
+Subquery:
+	A subquery is a query within a query.
+
+	The main query that contains the subquery is  called the OUTER QUERY
+	A subquery is also called an INNER QUERY
+
+	The inner query executes first before its parent query so that the results of an inner query can be passed to the outer query.
+
+	- A subquery must be enclosed in parentheses. 
+	- A subquery must be placed on the right side of the comparison operator. 
+	- Subqueries cannot manipulate their results internally, therefore ORDER BY clause cannot be added into a subquery.
+	- Use single-row operators(<,>,=,!=,>=,<=) with single-row subqueries. 
+	- If a subquery returns a null value to the outer query, the outer query will not return any rows when using certain comparison operators in a WHERE clause.
+	- Subqueries can also be nested
+
+
+A subquery may occur in :
+	- A SELECT clause
+	- A FROM clause
+	- A WHERE clause
+
+
+###	Types of Subquery:
+
+	Single row subquery : Returns zero or one row.(Single row comparison operators are used in where clause i.e =,>,<,>=,<=,!=)
+	Multiple row subquery : Returns one or more rows.(multiple row comparison operators like IN, ANY, ALL are used)
+	Multiple column subqueries : Returns one or more columns.
+	Correlated subqueries : Reference one or more columns in the outer SQL statement. 
+							The subquery is known as a correlated subquery because the subquery is related to the outer SQL statement.
+
+
+
+
+# The subquery can be nested inside a SELECT, INSERT, UPDATE, or DELETE statement or inside another subquery.
+
+	testdb=# insert into employee_temp select *  from employee where emp_id in(select emp_id from employee );
+	INSERT 0 11
+
+	testdb=# update employee_temp set emp_sal=emp_sal*1.10 where emp_id in (select emp_id from employee_temp where emp_dept='pr');
+	UPDATE 4
+	
+	
+-Single row subquery:
+
+	Display the employees whose salary is higher than the average salary throughout the company.
+
+	testdb=# select * from cmr_employee where sal>=(select coalesce(avg(sal),0) from cmr_employee);
+	 eid  | ename |    sal    | dept | mgr_id 
+	------+-------+-----------+------+--------
+	 1002 | tom   |  65000.00 | pr   |       
+	 1005 | peter |  85000.00 | pr   |   1002
+	 1008 | ravi  | 125000.00 | hr   |   1004
+	(3 rows)
+	
+-Multiple row subquery
+
+	Display the employee who are managers
+	
+	testdb=# select ename from cmr_employee where eid in(select distinct mgr_id from cmr_employee );
+	   ename    
+	------------
+	 ram
+	 tom
+	 sai kumar
+	 rana singh
+	(4 rows)
+
+	Display the employee details who earns max sal in each dept
+	
+	testdb=# select * from cmr_employee where sal in(select max(sal) from cmr_employee group by dept);
+	 eid  | ename |    sal    | dept | mgr_id 
+	------+-------+-----------+------+--------
+	 1005 | peter |  85000.00 | pr   |   1002
+	 1008 | ravi  | 125000.00 | hr   |   1004
+	(2 rows)
+
+-Multiple column subquery
+
+	Display the employee details who earns min sal in each dept
+	
+	testdb=# select * from cmr_employee where (dept,sal) in (select dept,min(sal) from cmr_employee group by dept);
+	 eid  |   ename   |   sal    | dept | mgr_id 
+	------+-----------+----------+------+--------
+	 1003 | sai kumar | 35000.00 | hr   |   1001
+	 1006 | balu      | 43000.00 | pr   |   1002
+	 1007 | anand     | 35000.00 | hr   |   1003
+	(3 rows)
+
+-Corelated Subquery
+	
+	Display the employees whose salary is  more than the average salary in each department.
+	
+	testdb=# select * from cmr_employee c where sal>=(select coalesce(avg(sal),0) from cmr_employee e where e.dept=c.dept);
+	 eid  | ename |    sal    | dept | mgr_id 
+	------+-------+-----------+------+--------
+	 1002 | tom   |  65000.00 | pr   |       
+	 1005 | peter |  85000.00 | pr   |   1002
+	 1008 | ravi  | 125000.00 | hr   |   1004
+	(3 rows)
+
+	Display employees with their manager names
+	
+	testdb=# select e.ename "employee",(select m.ename from cmr_employee m  where e. mgr_id=m.eid) as manager from cmr_employee e;
+	  employee  |  manager   
+	------------+------------
+	 ram        | 
+	 tom        | 
+	 sai kumar  | ram
+	 rana singh | ram
+	 peter      | tom
+	 balu       | tom
+	 anand      | sai kumar
+	 ravi       | rana singh
+	(8 rows)
+
+
+
+
+	
+	
+	
+
+
+
+
+	
+	
+
+
+
+
+
+
