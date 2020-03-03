@@ -397,23 +397,24 @@ The NTILE() function assigns each group a bucket number starting from 1
 
 Following query divides the products price range in a particular category to 3 categories( assume low,med,high) 
 
-testdb=# select prod_name,price,cat_name,NTILE(3) over (partition by cat_name) "Price range" from products p,category c where p.cid=c.cat_id;
+testdb=# select prod_name,price,cat_name,NTILE(3) over (partition by cat_name order by price) "Price range" from products p,category c where p.cid=c.cat_id;
      prod_name     |  price   |  cat_name  | Price range 
 -------------------+----------+------------+-------------
- ACER ASPIRE       | 33000.00 | COMPUTER   |           1
- DELL INSPIRON     | 43000.00 | COMPUTER   |           2
- LENOVE IDEAPAD    | 18000.00 | COMPUTER   |           3
- BOAT AIR DOPES    |  5000.00 | EAR PHONES |           1
+ LENOVE IDEAPAD    | 18000.00 | COMPUTER   |           1
+ ACER ASPIRE       | 33000.00 | COMPUTER   |           2
+ DELL INSPIRON     | 43000.00 | COMPUTER   |           3
  NOISE SHOTS       |  1500.00 | EAR PHONES |           1
- AIRBUDS AIR       |  3500.00 | EAR PHONES |           2
+ AIRBUDS AIR       |  3500.00 | EAR PHONES |           1
+ BOAT AIR DOPES    |  5000.00 | EAR PHONES |           2
  AIRPODS           | 15000.00 | EAR PHONES |           3
- OPPO              | 25000.00 | MOBILE     |           1
+ HONOR 6X          |  9000.00 | MOBILE     |           1
  VIVO V9           | 15000.00 | MOBILE     |           1
- SAMSUNG GALAXY S9 | 35000.00 | MOBILE     |           2
- IPHONE 7          | 60000.00 | MOBILE     |           2
- HONOR 6X          |  9000.00 | MOBILE     |           3
- REAL ME           | 15000.00 | MOBILE     |           3
+ REAL ME           | 15000.00 | MOBILE     |           2
+ OPPO              | 25000.00 | MOBILE     |           2
+ SAMSUNG GALAXY S9 | 35000.00 | MOBILE     |           3
+ IPHONE 7          | 60000.00 | MOBILE     |           3
 (13 rows)
+
 
 
 
