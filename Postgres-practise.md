@@ -69,21 +69,6 @@ Column constraint which ensures that column in the table cannot take any null va
 No name is required to define a null constraint..
 
 ```sql
-create table orders(order_id int not null,price numeric check(price>0),description text);
-CREATE TABLE
-
-\d orders 
-       Table "public.orders"
-   Column    |  Type   | Modifiers 
--------------+---------+-----------
- order_id    | integer | not null
- price       | numeric | 
- description | text    | 
-Check constraints:
-    "orders_price_check" CHECK (price > 0::numeric)
-	
-
-
 create table orders(order_id int not null,price numeric not null check(price>0),description text not null);
 CREATE TABLE
 
@@ -137,7 +122,7 @@ Indexes:
 Check constraints:
     "orders_price_check" CHECK (price > 0::numeric)
 
-testdb=# select * from orders;
+select * from orders;
  order_id |  price  |    description     
 ----------+---------+--------------------
       100 | 500.505 | A test description
@@ -166,29 +151,6 @@ Indexes:
     "prod_pkey" PRIMARY KEY, btree (prod_no)
 
 
-alter table prod drop constraint prod_pkey;
-ALTER TABLE
-
-\d prod;
-      Table "public.prod"
- Column  |  Type   | Modifiers 
----------+---------+-----------
- prod_no | integer | not null
- price   | integer | 
-
-
-alter table prod add constraint prod_prod_no_pkey primary key(prod_no); 
-ALTER TABLE
-
-\d prod
-      Table "public.prod"
- Column  |  Type   | Modifiers 
----------+---------+-----------
- prod_no | integer | not null
- price   | integer | 
-Indexes:
-    "prod_prod_no_pkey" PRIMARY KEY, btree (prod_no)
-
 alter table prod alter prod_no drop not null;
 ERROR:  column "prod_no" is in a primary key
 ```
@@ -216,7 +178,6 @@ CREATE TABLE
 
 create table orders(order_id integer primary key,prod_no int references prod(prod_no),quantity int);
 CREATE TABLE
-
 
 create table order_sample(order_id int references prod);
 CREATE TABLE
@@ -816,7 +777,10 @@ on c.cat_id=p.cid where p.price>=10000 group by c.cat_name having count(p.prod_i
 ## Subqueries
 ***
 
-A subquery is a query within a query.The main query that contains the subquery is  called the OUTER QUERY.A subquery is also called an INNER QUERY.The inner query executes first before its parent query so that the results of an inner query can be passed to the outer query.
+A subquery is a query within a query.   
+The main query that contains the subquery is  called the OUTER QUERY.   
+A subquery is also called an INNER QUERY.   
+The inner query executes first before its parent query so that the results of an inner query can be passed to the outer query.
 
  + A subquery must be enclosed in parentheses. 
  + A subquery must be placed on the right side of the       comparison operator. 
@@ -849,7 +813,8 @@ select * from cmr_employee where sal>=(select coalesce(avg(sal),0) from cmr_empl
 **Multiple row subquery** :       
 Returns one or more rows.(multiple row comparison operators like IN, ANY, ALL are used)
 
-When all is used it should match with everything in inner query.Any is used when atleast one of them should be matched.
+When **ALL** is used it should match with everything in inner query.    
+**ANY** is used when atleast one of them should be matched.
 
 Display the employee who are managers
 ```sql	
@@ -861,9 +826,10 @@ select ename from cmr_employee where eid in(select distinct mgr_id from cmr_empl
 	 sai kumar
 	 rana singh
 	(4 rows)
+```
 
 Display the employee details who earns max sal in each dept
-	
+```sql	
 select * from cmr_employee where sal in(select max(sal) from cmr_employee group by dept);
 
 	 eid  | ename |    sal    | dept | mgr_id 
@@ -905,9 +871,9 @@ select * from cmr_employee c where sal>=(select coalesce(avg(sal),0) from cmr_em
 	 1005 | peter |  85000.00 | pr   |   1002
 	 1008 | ravi  | 125000.00 | hr   |   1004
 	(3 rows)
-
+```
 Display employees with their manager names
-
+```sql
 select e.ename "employee",(select m.ename from cmr_employee m  where e. mgr_id=m.eid) as manager from cmr_employee e;
 
 	  employee  |  manager   
@@ -1018,25 +984,7 @@ from products p inner join category c on p.cid=c.cat_id;
 ```
 
 Short hand notation
-```sql
-select p.prod_name,p.price,c.cat_name,
-case c.cat_name
-when 'MOBILE' then 1.50*p.price
-else p.price
-end "Revised Prices"
-from products p right join category c on p.cid=c.cat_id;
 
-     prod_name     |  price   | cat_name | Revised Prices 
--------------------+----------+----------+----------------
- ACER ASPIRE       | 33000.00 | COMPUTER |       33000.00
- DELL INSPIRON     | 43000.00 | COMPUTER |       43000.00
- LENOVE IDEAPAD    | 18000.00 | COMPUTER |       18000.00
- SAMSUNG GALAXY S9 | 35000.00 | MOBILE   |     52500.0000
- IPHONE 7          | 60000.00 | MOBILE   |     90000.0000
- HONOR 6X          |  9000.00 | MOBILE   |     13500.0000
-                   |          | FASHION  |               
-(7 rows)
-```
 
 Increase the prices of mobile by 20% and computers by 10%
 ```sql
@@ -1135,89 +1083,94 @@ select first_name ||' '||coalesce(middle_name,' ')||' '||last_name as full_name 
 ## DISTINCT and DISTINCT ON
 ***
 
-Distinct is applicable to an entire tuple, after the result the distinct removes all the duplicates rows.   Must follow select command.
+DISTINCT removes all the duplicates rows.       
+Must follow select command.
 
 ```sql
-select * from colors;
- id | bcolor | fcolor 
-----+--------+--------
-  1 | red    | red
-  2 | red    | red
-  3 | red    | 
-  4 |        | red
-  5 | red    | green
-  6 | red    | blue
-  7 | green  | red
-  8 | green  | blue
-  9 | green  | green
- 10 | blue   | red
- 11 | blue   | green
- 12 | blue   | blue
- 13 | blue   | blue
-(13 rows)
+select * from employee limit 10;
+ id |         name         |      department      |  salary  
+----+----------------------+----------------------+----------
+  1 | Gabi Croom           | Engineering          | 20680.17
+  2 | Loreen Skayman       | Engineering          | 14392.06
+  3 | Cornelia Cochet      | Business Development | 35137.12
+  4 | Chicky Spraggs       | Sales                | 14034.18
+  5 | Giulia Andersch      | Legal                | 21737.08
+  6 | Marie Lillecrap      | Business Development | 33189.32
+  7 | Ashleigh Hurrell     | Product Management   | 29250.78
+  8 | Isabel Ogilvie       | Legal                |  8465.57
+  9 | Siward Jolland       | Human Resources      |  7902.90
+ 10 | Jacynth Killingworth | Training             | 10018.15
+(10 rows)
 
-select distinct bcolor from colors;
+select distinct department from employee limit 10;
+        department        
+--------------------------
+ Engineering
+ Training
+ Business Development
+ Sales
+ Marketing
+ Accounting
+ Services
+ Support
+ Research and Development
+ Legal
+(10 rows)
 
- bcolor 
---------
- 
- blue
- green
- red
+
  ```
- If you specify multiple columns, the DISTINCT clause will evaluate the duplicate based on the combination of values of these columns.All the column values will be considered as tuple and treat it 
-
- ```sql
-select distinct * from colors order by bcolor,fcolor;
-
- bcolor | fcolor 
---------+--------
- blue   | blue
- blue   | green
- blue   | red
- green  | blue
- green  | green
- green  | red
- red    | blue
- red    | green
- red    | red
- red    | 
-        | red
-```
-
+ If you specify multiple columns, the DISTINCT clause will evaluate the duplicate based on the combination of values of these columns.  
 
 **Distinct On**:
 
 PostgreSQL also provides the DISTINCT ON (expression) to keep the “first” row of each group of duplicates using the following 
-
-Syntax:                          
-
 ```sql
-SELECT
-   DISTINCT ON (column_1) column_alias,
-   column_2
+select * from employee where salary in (select max(salary) from employee group by department) order by department;
+
+
+  id  |         name         |        department        |  salary  
+------+----------------------+--------------------------+----------
+  227 | Avrom Formilli       | Accounting               | 49980.75
+  964 | Linell Probert       | Business Development     | 49612.71
+  311 | Nehemiah Shee        | Engineering              | 49916.01
+  966 | Collie Defty         | Human Resources          | 49879.48
+  639 | Nikaniki Prin        | Legal                    | 49830.76
+  727 | Issy Pakenham        | Marketing                | 49884.90
+  491 | Tami Capell          | Product Management       | 49225.95
+  662 | Renato Saiz          | Research and Development | 49909.68
+  127 | Roslyn Ellicombe     | Sales                    | 49444.99
+  922 | Gael Basset          | Services                 | 49314.11
+  538 | Alexandros Jozefczak | Support                  | 49874.84
+ 1000 | Karee Featherstone   | Training                 | 49675.26
+(12 rows)
+
+
+
+SELECT DISTINCT ON (department)
+    *
 FROM
-   table_name
+    employee
 ORDER BY
-   column_1,
-   column_2;
-```
+    department,
+    salary DESC;
+  id  |         name         |        department        |  salary  
+------+----------------------+--------------------------+----------
+  227 | Avrom Formilli       | Accounting               | 49980.75
+  964 | Linell Probert       | Business Development     | 49612.71
+  311 | Nehemiah Shee        | Engineering              | 49916.01
+  966 | Collie Defty         | Human Resources          | 49879.48
+  639 | Nikaniki Prin        | Legal                    | 49830.76
+  727 | Issy Pakenham        | Marketing                | 49884.90
+  491 | Tami Capell          | Product Management       | 49225.95
+  662 | Renato Saiz          | Research and Development | 49909.68
+  127 | Roslyn Ellicombe     | Sales                    | 49444.99
+  922 | Gael Basset          | Services                 | 49314.11
+  538 | Alexandros Jozefczak | Support                  | 49874.84
+ 1000 | Karee Featherstone   | Training                 | 49675.26
+(12 rows)
 
-The order of rows returned from the SELECT statement is unpredictable therefore the “first” row of each group of the duplicate is also unpredictable.   
+   ``` 
 
-It is good practice to always use the ORDER BY clause with the DISTINCT ON(expression) to make the result set obvious.Notice that the DISTINCT ON expression must match the leftmost expression in the ORDER BY clause.
-
-```sql
-select distinct on(bcolor) bcolor,fcolor from colors order by bcolor,fcolor;
- bcolor | fcolor 
---------+--------
- blue   | blue
- green  | blue
- red    | blue
-        | red
-(4 rows)
-```
-For each unique bcolor value,it would return only the first unique bcolor it encounters based on ORDER BY clause along with fcolor value.
 
 The main differece between the two is distinct is applicable to the entire tuple (columns) in the query mentioned where as the distinct on is used to perform on the single column (can also be used for multiple columns).
 
@@ -1259,7 +1212,8 @@ COPY 4
 ## Temporary Tables
 ***
 
-A temporary table  is a short-lived table that exists for the duration of a database session or current transaction.Dropped at the end of a session or transaction.       
+A temporary table  is a short-lived table that exists for the duration of a database session or current transaction.    
+Dropped at the end of a session or transaction.       
 
 A temporary table is visible only to the session that creates it.Any indexes created on a temporary table are also automatically temporary.
 
@@ -1268,7 +1222,7 @@ Can have same name as permanent table but we cannot access the permanent table u
 ```sql
 CREATE TABLE customers(id SERIAL PRIMARY KEY, name VARCHAR NOT NULL);
 CREATE TEMP TABLE customers(customer_id INT);
-postgres=# select * from customers;
+ select * from customers;
  customer_id 
 -------------
 (0 rows)
@@ -1288,7 +1242,7 @@ The temprorary table is created in a special schema(pg_temp_nn)
 
 To access permanent table schema name is used
 ```sql
-postgres=# \d
+\d
                  List of relations
   Schema   |       Name       |   Type   |  Owner   
 -----------+------------------+----------+----------
@@ -1297,7 +1251,7 @@ postgres=# \d
  public    | test             | table    | postgres
 (3 rows)
 
-postgres=# select * from public.customers;
+select * from public.customers;
  id | name 
 ----+------
 (0 rows)
@@ -1306,9 +1260,10 @@ postgres=# select * from public.customers;
 
 To drop a temporary table from database.
 ```sql
-postgres=# drop table customers;
+drop table customers;
 DROP TABLE
-postgres=# \dt
+
+\dt
            List of relations
  Schema |   Name    | Type  |  Owner   
 --------+-----------+-------+----------
@@ -1428,7 +1383,7 @@ One requirement for using CONCURRENTLY option is that the materialized view must
 ## Common Table Expressions (CTE's)
 ***
 
-Common Table Expressions or CTE's,can be thought of as defining temporary tables that exist just for one query. 
+Common Table Expressions or CTE's, can be thought of as defining temporary tables that exist just for one query. 
 CTEs are similar to a view that is materialized only while that query is running and does not exist outside of that query. 
 
 + Allows large queries to be more readable.
@@ -1482,7 +1437,8 @@ select e.eid,e.ename,e.sal,e.dept,cte.ename from cmr_employee e LEFT JOIN emp_jo
 ```
 **Recursive CTE's:**
 
-CTEs allow themselves to be called until some condition is met.Recursive queries are typically used to deal with hierarchical or tree-structured data.
+CTEs allow themselves to be called until some condition is met.     
+Recursive queries are typically used to deal with hierarchical or tree-structured data.
 
 + Possible to express recurssion in sql.
 + Works with the concept of working table(which is temporary table to store results)
@@ -1519,13 +1475,14 @@ select * from manager_tree;
 
 ## Window Function's
 ***
-Window functions are used to perform  a operation across a set of table rows which are related to current row.Comparable as of aggregate function but the rows retain their identities 
+Window functions are used to perform  a operation across a set of table rows which are related to current row.  
+Comparable as of aggregate function but the rows retain their identities.   
 The window function is able to access more than just the current row. It doesnot reduce the number of rows in a window.
 
 **PARTITION BY**
 
 The PARTITION BY clause divides rows into multiple groups or partitions to which the window function is applied. 
-Like the example above, we used the product group to divide the products into groups (or partitions).
+Like the example below, we used the product group to divide the products into groups (or partitions).
 
 The PARTITION BY clause is optional.If you skip the PARTITION BY clause, the window function will treat the whole result set as a single partition.
 
@@ -1534,34 +1491,66 @@ The PARTITION BY clause is optional.If you skip the PARTITION BY clause, the win
 The ORDER BY clause specifies the order of rows in each partition to which the window function is applied.
 
 The ORDER BY clause uses the NULLS FIRST or NULLS LAST option to specify whether nullable values should be first or last in the result set. The default is NULLS LAST option.
+```sql
+select * from category;
+ cat_id |  cat_name  
+--------+------------
+      1 | COMPUTER
+      2 | MOBILE
+      3 | FASHION
+      4 | EAR PHONES
+(4 rows)
 
+select * from products;
+ prod_id |     prod_name     |  price   | cid 
+---------+-------------------+----------+-----
+    1001 | ACER ASPIRE       | 33000.00 |   1
+    1002 | DELL INSPIRON     | 43000.00 |   1
+    1003 | LENOVE IDEAPAD    | 18000.00 |   1
+    1004 | SAMSUNG GALAXY S9 | 35000.00 |   2
+    1005 | IPHONE 7          | 60000.00 |   2
+    1006 | HONOR 6X          |  9000.00 |   2
+    1007 | NOKIA 1100        |  4000.00 |    
+    1008 | REAL ME           | 15000.00 |   2
+    1009 | OPPO              | 25000.00 |   2
+    1015 | VIVO V9           | 15000.00 |   2
+    1016 | NOISE SHOTS       |  1500.00 |   4
+    1017 | AIRBUDS AIR       |  3500.00 |   4
+    1018 | AIRPODS           | 15000.00 |   4
+    1019 | BOAT AIR DOPES    |  5000.00 |   4
+(14 rows)
+```	
 ```sql
 select cat_name,AVG(price) from products p inner join category c on p.cid=c.cat_id group by cat_name;
- cat_name |        avg         
-----------+--------------------
- MOBILE   | 26500.000000000000
- COMPUTER | 31333.333333333333
-(2 rows)
+  cat_name  |          avg          
+------------+-----------------------
+ EAR PHONES | 6250.0000000000000000
+ MOBILE     |    26500.000000000000
+ COMPUTER   |    31333.333333333333
+(3 rows)
 
-***WITH window function
 
-
+--WITH window function
 
 select prod_id,prod_name,price,cat_name,AVG(price) OVER
 ( PARTITION BY cat_name ) from products p inner join category c on p.cid=c.cat_id
 
- prod_id |     prod_name     |  price   | cat_name |        avg         
----------+-------------------+----------+----------+--------------------
-    1001 | ACER ASPIRE       | 33000.00 | COMPUTER | 31333.333333333333
-    1002 | DELL INSPIRON     | 43000.00 | COMPUTER | 31333.333333333333
-    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER | 31333.333333333333
-    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE   | 26500.000000000000
-    1005 | IPHONE 7          | 60000.00 | MOBILE   | 26500.000000000000
-    1006 | HONOR 6X          |  9000.00 | MOBILE   | 26500.000000000000
-    1008 | REAL ME           | 15000.00 | MOBILE   | 26500.000000000000
-    1009 | OPPO              | 25000.00 | MOBILE   | 26500.000000000000
-    1015 | VIVO V9           | 15000.00 | MOBILE   | 26500.000000000000
-(9 rows)
+ prod_id |     prod_name     |  price   |  cat_name  |          avg          
+---------+-------------------+----------+------------+-----------------------
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER   |    31333.333333333333
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER   |    31333.333333333333
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER   |    31333.333333333333
+    1019 | BOAT AIR DOPES    |  5000.00 | EAR PHONES | 6250.0000000000000000
+    1016 | NOISE SHOTS       |  1500.00 | EAR PHONES | 6250.0000000000000000
+    1017 | AIRBUDS AIR       |  3500.00 | EAR PHONES | 6250.0000000000000000
+    1018 | AIRPODS           | 15000.00 | EAR PHONES | 6250.0000000000000000
+    1009 | OPPO              | 25000.00 | MOBILE     |    26500.000000000000
+    1015 | VIVO V9           | 15000.00 | MOBILE     |    26500.000000000000
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     |    26500.000000000000
+    1005 | IPHONE 7          | 60000.00 | MOBILE     |    26500.000000000000
+    1006 | HONOR 6X          |  9000.00 | MOBILE     |    26500.000000000000
+    1008 | REAL ME           | 15000.00 | MOBILE     |    26500.000000000000
+(13 rows)
 ```
 All aggregate functions AVG(), MIN(), MAX(), SUM(), and COUNT() can be used as window functions.
 
@@ -1573,17 +1562,23 @@ Number the current row within its partition starting from 1.
 
 ```sql
 select prod_id,prod_name,cat_name,price,ROW_NUMBER () over ( PARTITION by cat_name order by price)from products p INNER JOIN category c on p.cid=c.cat_id;
- prod_id |     prod_name     | cat_name |  price   | row_number 
----------+-------------------+----------+----------+------------
-    1003 | LENOVE IDEAPAD    | COMPUTER | 18000.00 |          1
-    1001 | ACER ASPIRE       | COMPUTER | 33000.00 |          2
-    1002 | DELL INSPIRON     | COMPUTER | 43000.00 |          3
-    1006 | HONOR 6X          | MOBILE   |  9000.00 |          1
-    1015 | VIVO V9           | MOBILE   | 15000.00 |          2
-    1008 | REAL ME           | MOBILE   | 15000.00 |          3
-    1009 | OPPO              | MOBILE   | 25000.00 |          4
-    1004 | SAMSUNG GALAXY S9 | MOBILE   | 35000.00 |          5
-    1005 | IPHONE 7          | MOBILE   | 60000.00 |          6
+
+ prod_id |     prod_name     |  cat_name  |  price   | row_number 
+---------+-------------------+------------+----------+------------
+    1003 | LENOVE IDEAPAD    | COMPUTER   | 18000.00 |          1
+    1001 | ACER ASPIRE       | COMPUTER   | 33000.00 |          2
+    1002 | DELL INSPIRON     | COMPUTER   | 43000.00 |          3
+    1016 | NOISE SHOTS       | EAR PHONES |  1500.00 |          1
+    1017 | AIRBUDS AIR       | EAR PHONES |  3500.00 |          2
+    1019 | BOAT AIR DOPES    | EAR PHONES |  5000.00 |          3
+    1018 | AIRPODS           | EAR PHONES | 15000.00 |          4
+    1006 | HONOR 6X          | MOBILE     |  9000.00 |          1
+    1015 | VIVO V9           | MOBILE     | 15000.00 |          2
+    1008 | REAL ME           | MOBILE     | 15000.00 |          3
+    1009 | OPPO              | MOBILE     | 25000.00 |          4
+    1004 | SAMSUNG GALAXY S9 | MOBILE     | 35000.00 |          5
+    1005 | IPHONE 7          | MOBILE     | 60000.00 |          6
+(13 rows)
 ```
 
 **RANK**	                                                   
@@ -1595,18 +1590,23 @@ select prod_id,prod_name,cat_name,price,
 RANK () over ( PARTITION by cat_name order by price)
 from products p INNER JOIN category c on p.cid=c.cat_id;
 
- prod_id |     prod_name     | cat_name |  price   | rank 
----------+-------------------+----------+----------+------
-    1003 | LENOVE IDEAPAD    | COMPUTER | 18000.00 |    1
-    1001 | ACER ASPIRE       | COMPUTER | 33000.00 |    2
-    1002 | DELL INSPIRON     | COMPUTER | 43000.00 |    3
-    1006 | HONOR 6X          | MOBILE   |  9000.00 |    1
-    1015 | VIVO V9           | MOBILE   | 15000.00 |    2
-    1008 | REAL ME           | MOBILE   | 15000.00 |    2
-    1009 | OPPO              | MOBILE   | 25000.00 |    4
-    1004 | SAMSUNG GALAXY S9 | MOBILE   | 35000.00 |    5
-    1005 | IPHONE 7          | MOBILE   | 60000.00 |    6
-(9 rows)
+ prod_id |     prod_name     |  cat_name  |  price   | rank 
+---------+-------------------+------------+----------+------
+    1003 | LENOVE IDEAPAD    | COMPUTER   | 18000.00 |    1
+    1001 | ACER ASPIRE       | COMPUTER   | 33000.00 |    2
+    1002 | DELL INSPIRON     | COMPUTER   | 43000.00 |    3
+    1016 | NOISE SHOTS       | EAR PHONES |  1500.00 |    1
+    1017 | AIRBUDS AIR       | EAR PHONES |  3500.00 |    2
+    1019 | BOAT AIR DOPES    | EAR PHONES |  5000.00 |    3
+    1018 | AIRPODS           | EAR PHONES | 15000.00 |    4
+    1006 | HONOR 6X          | MOBILE     |  9000.00 |    1
+    1015 | VIVO V9           | MOBILE     | 15000.00 |    2
+    1008 | REAL ME           | MOBILE     | 15000.00 |    2
+    1009 | OPPO              | MOBILE     | 25000.00 |    4
+    1004 | SAMSUNG GALAXY S9 | MOBILE     | 35000.00 |    5
+    1005 | IPHONE 7          | MOBILE     | 60000.00 |    6
+(13 rows)
+
 
 --Rank based on the price from the table.It gives the same rank for two rows with same price and then skips the immediate next number.
 ```
@@ -1619,18 +1619,22 @@ select prod_id,prod_name,cat_name,price,
 DENSE_RANK () over ( PARTITION by cat_name order by price)
 from products p INNER JOIN category c on p.cid=c.cat_id;
 
- prod_id |     prod_name     | cat_name |  price   | dense_rank 
----------+-------------------+----------+----------+------------
-    1003 | LENOVE IDEAPAD    | COMPUTER | 18000.00 |          1
-    1001 | ACER ASPIRE       | COMPUTER | 33000.00 |          2
-    1002 | DELL INSPIRON     | COMPUTER | 43000.00 |          3
-    1006 | HONOR 6X          | MOBILE   |  9000.00 |          1
-    1015 | VIVO V9           | MOBILE   | 15000.00 |          2
-    1008 | REAL ME           | MOBILE   | 15000.00 |          2
-    1009 | OPPO              | MOBILE   | 25000.00 |          3
-    1004 | SAMSUNG GALAXY S9 | MOBILE   | 35000.00 |          4
-    1005 | IPHONE 7          | MOBILE   | 60000.00 |          5
-(9 rows)
+ prod_id |     prod_name     |  cat_name  |  price   | dense_rank 
+---------+-------------------+------------+----------+------------
+    1003 | LENOVE IDEAPAD    | COMPUTER   | 18000.00 |          1
+    1001 | ACER ASPIRE       | COMPUTER   | 33000.00 |          2
+    1002 | DELL INSPIRON     | COMPUTER   | 43000.00 |          3
+    1016 | NOISE SHOTS       | EAR PHONES |  1500.00 |          1
+    1017 | AIRBUDS AIR       | EAR PHONES |  3500.00 |          2
+    1019 | BOAT AIR DOPES    | EAR PHONES |  5000.00 |          3
+    1018 | AIRPODS           | EAR PHONES | 15000.00 |          4
+    1006 | HONOR 6X          | MOBILE     |  9000.00 |          1
+    1015 | VIVO V9           | MOBILE     | 15000.00 |          2
+    1008 | REAL ME           | MOBILE     | 15000.00 |          2
+    1009 | OPPO              | MOBILE     | 25000.00 |          3
+    1004 | SAMSUNG GALAXY S9 | MOBILE     | 35000.00 |          4
+    1005 | IPHONE 7          | MOBILE     | 60000.00 |          5
+(13 rows)
 ```
 
 **FIRST_VALUE**
@@ -1683,6 +1687,30 @@ select prod_id,prod_name,price,cat_name,LAST_VALUE(price) OVER
     1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     |                35000.00
     1005 | IPHONE 7          | 60000.00 | MOBILE     |                60000.00
 (13 rows)
+
+--With adding Frame clause
+
+select prod_id,prod_name,price,cat_name,LAST_VALUE(price) OVER
+ ( PARTITION BY cat_name order by price RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as HIGHEST_PRICE_PER_GROUP from products p inner join category c on p.cid=c.cat_id;
+ prod_id |     prod_name     |  price   |  cat_name  | highest_price_per_group 
+---------+-------------------+----------+------------+-------------------------
+    1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER   |                43000.00
+    1001 | ACER ASPIRE       | 33000.00 | COMPUTER   |                43000.00
+    1002 | DELL INSPIRON     | 43000.00 | COMPUTER   |                43000.00
+    1016 | NOISE SHOTS       |  1500.00 | EAR PHONES |                15000.00
+    1017 | AIRBUDS AIR       |  3500.00 | EAR PHONES |                15000.00
+    1019 | BOAT AIR DOPES    |  5000.00 | EAR PHONES |                15000.00
+    1018 | AIRPODS           | 15000.00 | EAR PHONES |                15000.00
+    1006 | HONOR 6X          |  9000.00 | MOBILE     |                60000.00
+    1015 | VIVO V9           | 15000.00 | MOBILE     |                60000.00
+    1008 | REAL ME           | 15000.00 | MOBILE     |                60000.00
+    1009 | OPPO              | 25000.00 | MOBILE     |                60000.00
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     |                60000.00
+    1005 | IPHONE 7          | 60000.00 | MOBILE     |                60000.00
+(13 rows)
+
+Notice that we added the frame clause RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING 
+because by default the frame clause is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW.
 ```
 
 **LAG AND LEAD**
@@ -1737,13 +1765,23 @@ with temp as (select prod_id,prod_name,price,cat_name,
 NTH_VALUE(prod_name,2) over (partition by cat_name order by price desc range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING)  "second" from products p inner join category c on p.cid=c.cat_id)
 select t.*,pr.price from temp t inner join products pr on t.second = pr.prod_name ;
 
-prod_id |     prod_name     |  price   |  cat_name  |      second       |  price   
+ prod_id |     prod_name     |  price   |  cat_name  |      second       |  price   
 ---------+-------------------+----------+------------+-------------------+----------
     1003 | LENOVE IDEAPAD    | 18000.00 | COMPUTER   | ACER ASPIRE       | 33000.00
     1001 | ACER ASPIRE       | 33000.00 | COMPUTER   | ACER ASPIRE       | 33000.00
     1002 | DELL INSPIRON     | 43000.00 | COMPUTER   | ACER ASPIRE       | 33000.00
     1006 | HONOR 6X          |  9000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
-    1008 | REAL ME           | 15000.00 | MOBILE     | SAMSUNG 
+    1008 | REAL ME           | 15000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1015 | VIVO V9           | 15000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1009 | OPPO              | 25000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1004 | SAMSUNG GALAXY S9 | 35000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1005 | IPHONE 7          | 60000.00 | MOBILE     | SAMSUNG GALAXY S9 | 35000.00
+    1016 | NOISE SHOTS       |  1500.00 | EAR PHONES | BOAT AIR DOPES    |  5000.00
+    1017 | AIRBUDS AIR       |  3500.00 | EAR PHONES | BOAT AIR DOPES    |  5000.00
+    1019 | BOAT AIR DOPES    |  5000.00 | EAR PHONES | BOAT AIR DOPES    |  5000.00
+    1018 | AIRPODS           | 15000.00 | EAR PHONES | BOAT AIR DOPES    |  5000.00
+(13 rows)
+
 ```
 
 **NTILE**
@@ -1759,7 +1797,7 @@ Following query divides the products price range in a particular category to 3 c
 ```sql
 select prod_name,price,cat_name,NTILE(3) over (partition by cat_name  order by price) "Price range" from products p,category c where p.cid=c.cat_id;
 
- prod_name     |  price   |  cat_name  | Price range 
+      prod_name     |  price   |  cat_name  | Price range 
 -------------------+----------+------------+-------------
  LENOVE IDEAPAD    | 18000.00 | COMPUTER   |           1
  ACER ASPIRE       | 33000.00 | COMPUTER   |           2
@@ -1771,7 +1809,10 @@ select prod_name,price,cat_name,NTILE(3) over (partition by cat_name  order by p
  HONOR 6X          |  9000.00 | MOBILE     |           1
  VIVO V9           | 15000.00 | MOBILE     |           1
  REAL ME           | 15000.00 | MOBILE     |           2
+ OPPO              | 25000.00 | MOBILE     |           2
  SAMSUNG GALAXY S9 | 35000.00 | MOBILE     |           3
+ IPHONE 7          | 60000.00 | MOBILE     |           3
+(13 rows)
 ```
 ## Full Text Search
 ***
@@ -2224,6 +2265,344 @@ These are called advisory locks.
 * Advisory locks can be useful for locking strategies that are an awkward fit for the MVCC model.
 
  
+## Indexes:
+Indexes are special lookup tables that the database search engine can use to speed up data retrieval.
+Simply put, an index is a pointer to data in a table. An index in a database is very similar to an index in the back of a book.
+For example, if you want to reference all pages in a book that discusses a certain topic,you have to first refer to the index, which lists all topics alphabetically and then refer to one or more specific page numbers.
+
+An index helps to speed up SELECT queries and WHERE clauses; however, it slows down data input
+ 
+
+PostgreSQL provides several index types:        
++ B-tree
++ Hash
++ GiST 
++ GIN
+           
+Each index type uses a different algorithm that is best suited to different types of queries. By default,the CREATE INDEX command creates B-tree indexes, which fit the most common situations.
+
+**B-Trees**       
+B Trees can handle equality and range queries on data.Using postgres whenever an index column is invovled in a comparison (<,>,<=,>=,=), creates a tree which is balanced and even.
+
++ If the column is unique then by default b-tree will be assgined to column.       
++ They can operate against all datatypes, and can also be used to retrieve NULL values. 
++ B-tree indexes can also be used to retrieve data in sorted order.
+
+```sql
+---By default btree is assigned to the dep_id which is unique.
+
+Table "public.department"
+
+  Column  |          Type          | Modifiers 
+----------+------------------------+-----------
+ dep_id   | integer                | 
+ dep_name | character varying(255) | 
+ mang_id  | integer                | 
+ loc_id   | integer                | 
+Indexes:
+    "depid_unique" UNIQUE CONSTRAINT, btree (dep_id)
+```
+Describe the table part which gives the information about the table columns,type of the column and modifiers.
+
+```sql
+\d part
+Table "public.part"
+Column          |      Type              |   Modifiers                     
+ id             | integer                 | not null default nextval('part_id_seq'::regclass)
+ partno         | character varying(20)| not null
+ partname       | character varying(80)| not null
+ partdescr      | text                    |
+ machine_id     | integer                 | not null
+Indexes:
+    "part_pkey" PRIMARY KEY, btree (id)
+    "part_partno_key" UNIQUE CONSTRAINT, btree (partno)
+```
+```sql
+---insert million rows into the table using generate series..
+with populate_qry as (select gs from generate_series(1,1000000) as gs )
+insert into part (partno, partname,machine_id) SELECT 'PNo:'||gs, 'Part '||gs,0 from populate_qry;
+INSERT 0 1000000
+```
+
+```sql
+---fetching values without any index on the column name..
+select * from part where partname='Part 100000';
+
+id   |   partno   |  partname   | partdescr | machine_id 
+--------+------------+-------------+-----------+-----------
+ 100000 | PNo:100000 | Part 100000 |           |          0
+(1 row)
+
+Time: 124.284 ms
+```
+
+```sql
+explain select * from part where partname='Part 100000';
+                QUERY PLAN                        
+---------------------------------------------------------
+ Seq Scan on part  (cost=0.00..19853.00 rows=1 width=61)
+   Filter: ((partname)::text = 'Part 100000'::text)
+(2 rows) 
+
+Time: 1.297 ms
+```
+
+Fetching the result using the index on the column..
+
+```sql
+---create index on the column 
+create index part_partname_idx ON part(partname);
+CREATE INDEX
+Time: 5183.763 ms
+
+select * from part where partname='Part 100000';
+
+   id   |   partno   |  partname   | partdescr | machine_id 
+--------+------------+-------------+-----------+------------
+ 100000 | PNo:100000 | Part 100000 |           |          0
+(1 row)
+
+Time: 1.153 ms
+
+explain  select * from part where partname='Part 100000';
+               QUERY PLAN                           
+-------------------------------------------------------------------------------
+ Index Scan using part_partname_idx on part  (cost=0.42..8.44 rows=1 width=61)
+   Index Cond: ((partname)::text = 'Part 100000'::text)
+(2 rows)
+
+Time: 1.031 ms
+```
+We can see the select command with index on the column is fetching results fast when compared without index..
+
+**Hash Index**
+
+Hash Index are only useful for equality comparison.
+They are not transaction safe, need to be manually rebuilt after crashes
+
+```sql
+---Add new column into the table..
+
+alter table part add parttype varchar(100) CHECK (parttype in ('Engine','Suspension','Driveline','Brakes','Steering','General')) NOT NULL DEFAULT 'General';
+ALTER TABLE
+Time: 42690,557 ms (00:42,691)
+
+---filling the parttype with category value in the column.
+with catqry as  (select id,(random()*6)::int % 6 as cat from part)
+update part SET parttype = CASE WHEN cat=1 THEN 'Engine' WHEN cat=2 THEN 'Suspension' WHEN cat=3 THEN 'Driveline' WHEN cat=4 THEN 'Brakes' WHEN cat=5 THEN 'Steering' ELSE 'General' END FROM catqry WHERE part.id=catqry.id;
+UPDATE 1000000
+
+---using default scanning on the partype.
+
+select count(*) from part where id % 500 = 0 AND parttype = 'Steering';
+ count 
+-------
+   325
+(1 row)
+
+Time: 157.231 ms
+```
+Create hash index and then fetch the values from the table..
+
+```sql
+create index part_parttype_idx on part using hash(parttype);
+WARNING:  hash indexes are not WAL-logged and their use is discouraged
+CREATE INDEX
+Time: 67455.255 ms
+
+select count(*) from part where id % 500 = 0 AND parttype = 'Steering';
+ count 
+-------
+   325
+(1 row)
+
+Time: 125.282 ms
+```
+**Generalized Inverted Indexes(GIN)**
+
+Generalized Inverted Indexes, commonly referred to as GIN,are most useful when you have data types that contain multiple values in a single column.
+
+“GIN is designed for handling cases where the items to be indexed are composite values, and the queries to be handled by the index need to search for element values that appear within the composite items.
+
+For example, the items could be documents, and the queries could be searches for documents containing specific words.”
+
+GINs are good for indexing array values,  as well as for implementing full-text search.
+
+```sql
+CREATE TABLE users (
+    first_name text,
+    last_name text
+);
+```
+
+Insert and check the 
+```sql
+insert into users SELECT md5(random()::text), md5(random()::text) FROM (SELECT * FROM generate_series(1,1000000) AS id) AS x;
+
+SELECT count(*) FROM users where first_name ilike '%aeb%';
+ count 
+-------
+  7309
+(1 row)
+
+Time: 741.521 ms
+SELECT count(*) FROM users where first_name ilike '%aeb%' or last_name ilike'%aeb%';
+ count 
+-------
+ 14653
+(1 row)
+
+Time: 1432.538 ms
+```
+
+```sql
+CREATE INDEX users_search_idx ON users USING gin (first_name gin_trgm_ops, last_name gin_trgm_ops);
+CREATE INDEX
+Time: 28524.548 ms
+
+SELECT count(*) FROM users where first_name ilike '%aeb%';
+ count 
+-------
+  7309
+(1 row)
+
+Time: 38.672 ms
+SELECT count(*) FROM users where first_name ilike '%aeb%' or last_name ilike'%aeb%';
+ count 
+-------
+ 14653
+(1 row)
+
+Time: 54.504 ms
+```
+
+
+What is gin_trgm_ops?         
+This option tells Postgres to index using trigrams over our selected columns.    
+A trigram is a data structure that hold 3 letters of a word.      
+Essentially, Postgres will break down each text column down into trigrams and use that in the index when we search against it.
+
+
+
+**GIST**
+
+GiST (Generalized Search Tree) indexes are most useful when you have data that can in some way overlap with the value of that same column but from another row.
+
+Used to index the geometric data types, as well as full-text search.
+
+The best thing about GiST indexes: 
++ If you have say a geometry data type and you want to see if two polygons contained some point. 
++ In one case a specific point may be contained within box, while another point only exists within one polygon. 
+
+```sql
+create table task_scheduling(task_id serial primary key,task_name varchar(50) not null,
+resource_name varchar(20) not null,start_date date not null,end_date date,
+constraint task_scheduling_uk UNIQUE (task_name,resource_name));
+
+CREATE TABLE
+Time: 133.405 ms
+```
+
+Each task should hold only one resource at time and no other resource should be assigned to same task in the given period for allocated reource
+
+To make non overlapping rows with a constraint..
+
+```sql
+create extension btree_gist ;
+CREATE EXTENSION
+Time: 199.615 ms
+
+alter table task_scheduling add constraint task_scheduling_per EXCLUDE USING GIST(task_name WITH=,daterange(start_date,end_date) WITH &&);
+ALTER TABLE
+Time: 63.500 ms
+
+insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Printer','2020-02-01','2021-02-01');
+INSERT 0 1
+
+select * from task_scheduling;
+ task_id |     task_name      | resource_name | start_date |  end_date  
+---------+--------------------+---------------+------------+------------
+       1 | Print photo copies | Printer       | 2020-02-01 | 2021-02-01
+(1 row)
+
+Time: 0.694 ms
+
+insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Xerox','2020-02-01','2020-10-01');
+
+ERROR:  conflicting key value violates exclusion constraint "task_scheduling_per"
+DETAIL:  Key (task_name, daterange(start_date, end_date))=(Print photo copies, [2020-02-01,2020-10-01)) 
+conflicts with existing key (task_name, daterange(start_date, end_date))=(Print photo copies, [2020-02-01,2021-02-01)).
+Time: 1.250 ms
+```
+
+As Printer resource is assigned to task from  2020-02-01 to 2021-02-01.            
+No resource can be assigned to that task in the given period
+
+```sql
+insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Xerox','2018-02-01','2020-02-01');
+INSERT 0 1
+Time: 30.165 ms
+
+insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Scanner','2021-02-01',null);
+INSERT 0 1
+Time: 45.414 ms
+
+insert into task_scheduling(task_name,resource_name,start_date,end_date) values('Print photo copies','Wifi Printer','2023-02-01',null);
+ERROR:  conflicting key value violates exclusion constraint "task_scheduling_per"
+
+DETAIL:  Key (task_name, daterange(start_date, end_date))=(Print photo copies, [2023-02-01,)) 
+conflicts with existing key (task_name, daterange(start_date, end_date))=(Print photo copies, [2021-02-01,)).
+Time: 1.127 ms
+```
+
+**SP-GiST**
+
+SP-GiST is an abbreviation for space-partitioned GiST.  
+SP-GiST supports partitioned search trees, which facilitate development of a wide range of different non-balanced data structures,such as quad-trees, k-d trees, and suffix trees (tries).
+
++ The common feature of these structures is that they repeatedly divide the search space into partitions that need not be of equal size.
+
++ Developed for in-memory usage.
++ SP-GiST can also be used in exclusion constraints.
+
+
+**BRIN**    
+BRIN stands for “Block Range Index”.    
+A block range is a group of pages adjacent to each other, where summary information about all those pages is stored in Index.  
+
+For example, Datatypes like integers – dates where sort order is linear – can be stored as min and max value in the range. 
+
+Block range indexes are best when there is some natural ordering to the data, and the data tends to be very large.
+
+If you’re querying against a large set of data that is naturally grouped together such as data for several zip codes.
+
+BRIN helps to ensure that similar zip codes are located near each other on disk.
+
+BRIN indexes are usually very small compared to B-Tree indexes. 
+
+```sql
+*****Without BRIN index
+select count(*) from part where machine_id between 5000 and 10000; (Here it is using hash index right now)
+count 
+-------
+  5001
+(1 row)
+
+Time: 182.702 ms
+
+*****With BRIN Index
+
+create index part_machine_id_idx_brin on part using brin(machine_id);
+CREATE INDEX
+Time: 323.403 ms
+select count(*) from part where machine_id between 5000 and 10000;
+ count 
+-------
+  5001
+(1 row)
+
+Time: 94.291 ms
+```
 
 ## Triggers
 ***
