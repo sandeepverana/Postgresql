@@ -15,7 +15,7 @@
   13.  [ Full text search ](#full-text-search)          
   14.  [ Transaction isolation levels  ](#transaction-isolation-levels)         
   15. [ Manual locking ](#locking)  
-  16. Indexes -partial/functional, explain, analyze   
+  16. [Indexes -partial/functional, explain, analyze ](#indexes)  
   17. [Triggers](#triggers)**
 
 
