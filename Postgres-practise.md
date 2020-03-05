@@ -2603,6 +2603,100 @@ select count(*) from part where machine_id between 5000 and 10000;
 
 Time: 94.291 ms
 ```
+## Partial -Functional Indexes
+***
+
+PostgreSQL partial index even allows you to specify the rows of a table that should be indexed.  
+This partial index helps speed up the query while reducing the size of the index.
+
+A partial index is useful for commonly used WHERE conditions that use constant values—like
+```sql
+SELECT
+    customer_id,
+    first_name,
+    email
+FROM
+    customer
+WHERE
+    active = 0;
+
+explain select customer_id,first_name,email from customer where active=0;
+                        QUERY PLAN                         
+-----------------------------------------------------------
+ Seq Scan on customer  (cost=0.00..16.49 rows=15 width=42)
+   Filter: (active = 0)
+(2 rows)
+```
+You can optimize this query by creating an index for the column  active
+```sql
+create index customer_active_idx on customer(active);
+CREATE INDEX
+
+explain select customer_id,first_name,email from customer where active=0;
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Index Scan using customer_active_idx on customer  (cost=0.28..12.30 rows=15 width=42)
+   Index Cond: (active = 0)
+(2 rows)
+```
+Here index fulfills its purpose, however, it includes many rows that are never searched, namely all the active customers (i.e active=1). 
+
+To define an index that includes only inactive customers
+```sql
+create index customer_inactive_idx on customer(active) where active=0;
+CREATE INDEX
+```
+Here WHERE clause specifies which rows should be added to the index.
+```sql
+explain select customer_id,first_name,email from customer where active=0;
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Index Scan using customer_inactive_idx on customer  (cost=0.28..12.30 rows=15 width=42)
+   Index Cond: (active = 0)
+```
+**FUNCTIONAL INDEXES**  
+For a functional index, an index is defined on the result of a function applied to one or more columns of a single table
+
+The customer table has a B-Tree index defined for the last_name column.
+```sql
+explain select customer_id,first_name,last_name from customer where last_name='Purdy';
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Index Scan using idx_last_name on customer  (cost=0.28..8.29 rows=1 width=17)
+   Index Cond: ((last_name)::text = 'Purdy'::text)
+(2 rows)
+
+---When executing the above query, PostgreSQL uses the idx_last_name index 
+
+explain select customer_id,first_name,last_name from customer where LOWER(last_name)='purdy';
+                        QUERY PLAN                        
+----------------------------------------------------------
+ Seq Scan on customer  (cost=0.00..17.98 rows=3 width=17)
+   Filter: (lower((last_name)::text) = 'purdy'::text)
+(2 rows)
+```
+When executing the above query PostgreSQL could not utilize the index for lookup
+
+To improve this query, you can define an functional index as follows
+```sql
+create index customer_functionalindex_lastname on customer(LOWER(last_name));
+CREATE INDEX
+
+explain select customer_id,first_name,last_name from customer where LOWER(last_name)='purdy';
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on customer  (cost=4.30..11.15 rows=3 width=17)
+   Recheck Cond: (lower((last_name)::text) = 'purdy'::text)
+   ->  Bitmap Index Scan on customer_functionalindex_lastname  (cost=0.00..4.30 rows=3 width=0)
+         Index Cond: (lower((last_name)::text) = 'purdy'::text)
+(4 rows)
+```
+Besides functions like UPPER/LOWER you can also index expressions like A + B and even use user-defined functions in the index definition.
+
+Functions that cannot be “indexed” are random number generators and functions that depend on environment variables and
+functions that are non deterministic (i.e the result of the function call is not fully determined by its parameters.    
+Only functions that always return the same result for the same parameters are considered to be deterministic )
+
 
 ## Triggers
 ***
