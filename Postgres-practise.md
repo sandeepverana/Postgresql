@@ -3,10 +3,10 @@
 **1. [ Constraint types ](#constraint-types)  
   2. [Logical Operators](#logical-operators)        
   3. [Joins](#joins)                
-  4. [Aggreagate Functions - Group By - Having](#aggreagate-functions---group-by---having)                    
+  4. [Aggregate Functions - Group By - Having](#aggreagate-functions---group-by---having)                    
   5. [Subqueries](#subqueries)            
   6.[ Case + Coalesce ](#case---coalesce)  
-  7. [Distinct ,Distinct ON ](#distinct-and-distinct-on)    
+  7. [Distinct - Distinct ON ](#distinct-and-distinct-on)    
   8. [ COPY to load datasets ](#copy)  
   9. [Temporary tables](#temporary-tables)   
   10.  [ Views, Materialized views  ](#views)           
@@ -15,7 +15,7 @@
   13.  [ Full text search ](#full-text-search)          
   14.  [ Transaction isolation levels  ](#transaction-isolation-levels)         
   15. [ Manual locking ](#locking)  
-  16. [Indexes -partial/functional, explain, analyze ](#indexes)  
+  16. [Indexes - partial/functional, explain, analyze ](#indexes)  
   17. [Triggers](#triggers)**
 
 
@@ -32,7 +32,7 @@ create table orders(order_id int,price numeric check(price>0),description text);
 CREATE TABLE
 ```
 
-Giving name to constraint
+Giving a name to constraint
 
 ``` sql 
 create table orders(order_id int,price numeric constraint order_check_constraint check(price>0),description text);
@@ -167,10 +167,10 @@ This rule is not enforced by PostgreSQL, but it is usually best to follow it.
 **Foreign Keys**
 
 A foreign key constraint specifies that the values in a column (or a group of columns) 
-must match the values appearing in some row of another table. 
+must match the values appearing in some row of another table.  
 We say this maintains the referential integrity between two related tables.
 
-A table can contain multiple foreign keys which is used to implement many to many relationships betweeen tables 
+A table can contain multiple foreign keys which is used to implement many to many relationships between tables. 
 
 ```sql
 create table prod(prod_no int primary key,name text,price numeric);
@@ -230,6 +230,7 @@ Foreign-key constraints:
     "order_items_order_id_fkey" FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
     "order_items_prod_no_fkey" FOREIGN KEY (prod_no) REFERENCES prod(prod_no)
 
+
 select * from order_items;
  prod_no | order_id | quantity 
 ---------+----------+----------
@@ -256,6 +257,7 @@ select * from order_items;
       10 |      102 |        4
       11 |      103 |        2
 (5 rows)
+
 
 delete from orders where order_id=102;
 DELETE 1
@@ -327,7 +329,7 @@ select fruit from basket_a union select fruit from basket_b;
 ```
 **UNION ALL**       
 Fetches all the rows from two or more result statements which includes duplicates.   
-In Union operator it wont consider the duplicate values (only unique values) but union all fetches all the values including duplicates.
+In UNION operator it won't consider the duplicate values (only unique values) but UNION ALL fetches all the values including duplicates.
 
 ```sql
 select fruit from basket_a union all select fruit from basket_b;
@@ -367,7 +369,7 @@ select fruit from basket_a except select fruit from basket_b;
 ```
 
 **AND**     
-Select all the rows which matches both the conditions(both conditions have to be true)
+Select all the rows which matches both the conditions (both conditions have to be true)
 ```sql
 select * from emp where emp.sal>=8000 and emp.sal<20000;
 
@@ -396,7 +398,7 @@ select * from emp where emp.sal>=8000 or  emp.commission<=3000;
 
 ```
 **AND with OR**         
-Using And, Or operator 
+Using AND, OR operator 
 ```sql
 select * from emp where (emp.sal>=8000 and emp.sal<20000) or (emp.sal>1000 and emp.sal<2500);
 
@@ -528,8 +530,8 @@ select p.prod_name,p.price,c.cat_name from products p right join category c on p
 ```
 
 
-**FULL OUTER JOIN or FULL JOIN**
-Returns all rows from the LEFT-hand table and RIGHT-hand table with nulls in place where the join condition is not met.
+**FULL OUTER JOIN or FULL JOIN**  
+Returns all rows from the LEFT-hand table and RIGHT-hand table with nulls in place where the join condition is not met.     
 i.e Combines the result set of both RIGHT JOIN and LEFT JOIN
 
 ```sql
@@ -549,7 +551,7 @@ select p.prod_name,p.price,c.cat_name from products p full  join category c on p
 ```
 **CROSS JOIN**
 
-The Cross Join creates a cartesian product between two sets of data.
+The CROSS JOIN creates a cartesian product between two sets of data.
 
 ```sql
 select p.prod_name,p.price,c.cat_name from products p,category c;    
@@ -622,7 +624,7 @@ select c.cat_name from category c LEFT JOIN products p on  c.cat_id=p.cid where 
 (1 row)
 
 ```
-## Aggreagate Functions - Group By - Having
+## Aggregate Functions - Group By - Having
 ***
 An aggregate function is a special kind of function that operates on several rows of a query at once,
 returning a single result.
@@ -661,7 +663,7 @@ select * from products;
 **COUNT**
 
 The COUNT function returns the total number of values in the specified field   
-When an asterisk(*) is used with count function, returns the total number of rows.
+When an asterisk (*) is used with count function, returns the total number of rows.
 
 Number of products in product table
 
@@ -698,8 +700,9 @@ AVG function returns the average of the values in a specified column
 
 Average price for mobile category
 ```sql
-select round(avg(p.price),2) from products p inner join category c on p.cid=c.cat_id where c.cat_name='MOBILE';
-  round   
+select round(avg(p.price),2) as avg_price from products p inner join category c on p.cid=c.cat_id where c.cat_name='MOBILE';
+
+avg_price   
 ----------
  34666.67
 (1 row)
@@ -710,6 +713,7 @@ The MIN function returns the smallest value in the specified table field.
 Cheapest mobile price   
 ```sql
 select min(p.price) "Low End Mobile" from products p inner join category c on p.cid=c.cat_id where c.cat_name='MOBILE';
+
  Low End Mobile 
 ----------------
         9000.00
@@ -738,7 +742,7 @@ HAVING clause is used for conditional retrieval of rows from a grouped result wh
 - HAVING cannot be used without grouping.
 
 
-Display num of products,max price,min price in each category name
+Display num of products, max price, min price in each category name
 
 ```sql
 select c.cat_name,count(p.prod_id),max(p.price),min(p.price) from category
@@ -778,7 +782,7 @@ on c.cat_id=p.cid where p.price>=10000 group by c.cat_name having count(p.prod_i
 ***
 
 A subquery is a query within a query.   
-The main query that contains the subquery is  called the OUTER QUERY.   
+The main query that contains the subquery is called the OUTER QUERY.   
 A subquery is also called an INNER QUERY.   
 The inner query executes first before its parent query so that the results of an inner query can be passed to the outer query.
 
@@ -798,7 +802,7 @@ A subquery may occur in :
 ###	Types of Subquery:
 
 **Single row subquery** :    
-Returns zero or one row.(Single row comparison operators are used in where clause i.e =,>,<,>=,<=,!=)
+Returns zero or one row. (Single row comparison operators are used in where clause i.e =,>,<,>=,<=,!=)
 
 Display the employees whose salary is higher than the average salary throughout the company.
 ```sql
@@ -811,10 +815,10 @@ select * from cmr_employee where sal>=(select coalesce(avg(sal),0) from cmr_empl
 	(3 rows)
 ```
 **Multiple row subquery** :       
-Returns one or more rows.(multiple row comparison operators like IN, ANY, ALL are used)
+Returns one or more rows. (multiple row comparison operators like IN, ANY, ALL are used)
 
 When **ALL** is used it should match with everything in inner query.    
-**ANY** is used when atleast one of them should be matched.
+When **ANY** is used atleast one of them should be matched.
 
 Display the employee who are managers
 ```sql	
@@ -828,7 +832,7 @@ select ename from cmr_employee where eid in(select distinct mgr_id from cmr_empl
 	(4 rows)
 ```
 
-Display the employee details who earns max sal in each dept
+Display the employee details who earn max sal in each dept
 ```sql	
 select * from cmr_employee where sal in(select max(sal) from cmr_employee group by dept);
 
@@ -860,7 +864,7 @@ select * from cmr_employee where (dept,sal) in (select dept,min(sal) from cmr_em
 **Correlated subqueries** :          
 Reference one or more columns in the outer SQL statement.The subquery is known as a correlated subquery because the subquery is related to the outer SQL statement.
 
-Display the employees whose salary is  more than the average salary in each department.
+Display the employees whose salary is more than the average salary in each department.
 
 ```sql
 select * from cmr_employee c where sal>=(select coalesce(avg(sal),0) from cmr_employee e where e.dept=c.dept);
@@ -889,7 +893,7 @@ select e.ename "employee",(select m.ename from cmr_employee m  where e. mgr_id=m
 	(8 rows)
    ```
 
-The subquery can be nested inside a SELECT, INSERT, UPDATE, or DELETE statement or inside another subquery
+The subquery can be nested inside a SELECT, INSERT, UPDATE or DELETE statement or inside another subquery
 
 ```sql
 insert into employee_temp select *  from employee where emp_id in(select emp_id from employee );
@@ -929,7 +933,7 @@ END
 ```
 
 
-Short hand notation
+Shorthand notation
 ```
 CASE <search-parameter>
   WHEN <search-value> THEN <output>
@@ -983,7 +987,7 @@ from products p inner join category c on p.cid=c.cat_id;
 (6 rows)
 ```
 
-Short hand notation
+Shorthand notation
 
 
 Increase the prices of mobile by 20% and computers by 10%
@@ -1007,9 +1011,9 @@ from products p inner join category c on p.cid=c.cat_id;
 (6 rows)
 ```
 **COALESCE**     
-This is often useful to substitute a default value for null values when data is retrieved for display.   
-* The COALESCE function returns the first of its arguments that is not null.    
-* NULL is returned only if all arguments are null. 
+This is often useful to substitute a default value for NULL values when data is retrieved for display.   
+* The COALESCE function returns the first of its arguments that is NOT NULL.    
+* NULL is returned only if all arguments are NULL. 
 * The arguments in the coalesce must be of same data type.
 ```sql
 select coalesce(null,null,null,100,20);
@@ -1172,12 +1176,12 @@ ORDER BY
    ``` 
 
 
-The main differece between the two is distinct is applicable to the entire tuple (columns) in the query mentioned where as the distinct on is used to perform on the single column (can also be used for multiple columns).
+The main difference between the two is DISTINCT applies to the entire tuple (columns) in the query mentioned whereas the DISTINCT ON is used to perform on the single column (can also be used for multiple columns).
 
 ## COPY
 ***
 
-COPY -a mechanism for you to bulk load data in or out of Postgres.
+COPY - a mechanism to bulk load data in or out of Postgres.
 
 
 
@@ -1202,7 +1206,7 @@ To export data from postgres to files
 copy customers to 'path-to-file/customers.csv' delimiter ',' csv header;
 COPY 4
 ```
-To export only specific columns from postgres to files
+To export only specific columns from Postgres to files
 ```sql
 copy customers(name) to 'path-to-file/customers.csv' delimiter ',' csv header;
 COPY 4
@@ -1212,12 +1216,12 @@ COPY 4
 ## Temporary Tables
 ***
 
-A temporary table  is a short-lived table that exists for the duration of a database session or current transaction.    
+A temporary table is a short-lived table that exists for the duration of a database session or current transaction.    
 Dropped at the end of a session or transaction.       
 
-A temporary table is visible only to the session that creates it.Any indexes created on a temporary table are also automatically temporary.
+A temporary table is visible only to the session that creates it. Any indexes created on a temporary table are also automatically temporary.
 
-Can have same name as permanent table but we cannot access the permanent table until temp table is droped
+Can have same name as a permanent table but we cannot access the permanent table until temp table is dropped
 
 ```sql
 CREATE TABLE customers(id SERIAL PRIMARY KEY, name VARCHAR NOT NULL);
@@ -1227,7 +1231,7 @@ CREATE TEMP TABLE customers(customer_id INT);
 -------------
 (0 rows)
 ```
-The temprorary table is created in a special schema(pg_temp_nn)
+The temprorary table is created in a special schema (pg_temp_nn)
 
 ```sql
 \dt
@@ -1258,7 +1262,7 @@ select * from public.customers;
 
 ```
 
-To drop a temporary table from database.
+To drop a temporary table from the database.
 ```sql
 drop table customers;
 DROP TABLE
@@ -1275,11 +1279,11 @@ DROP TABLE
 ***
 * A view is named query that provides another way to present data in the database tables.   
 * Views are based on one or more tables, which are known as base tables.   
-* Views doesnot contain any data   
+* Views does not contain any data.   
 * Views are definitions built on top of other tables (or views).   
-* If data is changed in the underlying table, the same change is reflected in the view   
-* A view can be accessed as a virtual table in PostgreSQL   
-* Temporary views can also be created
+* If data is changed in the underlying table, the same change is reflected in the view.   
+* A view can be accessed as a virtual table in PostgreSQL.   
+* Temporary views can also be created.
 ```sql
 create view part_view as select * from part limit 5 offset 100;
 CREATE VIEW
@@ -1312,23 +1316,23 @@ ALTER VIEW
 
 ## Materialized Views
 
-Materialized view  stores data physically and refreshes the data periodically from the base tables.   
+Materialized view stores data physically and refreshes the data periodically from the base tables.   
 
-The materialized views have many advantages in many scenarios such as faster access to data from a remote server, data caching, etc.
+The materialized views have many advantages in many scenarios such as faster access to data from a remote server, data caching etc.
 
 Disadvantage of simple view   
 * Each time a view is used in a query, the query that created the view is executed.   
-* This makes simple views ineffificent to access time
+* This makes simple views inefficient to access time
 
 Materialized views allow you to persist a view in the database physically
 
-Creating a materialized view
+Creating a materialized view.
 ```sql
 create materialized view part_view as select * from part where machine_id between 400000 and 400010;
 SELECT 11
 ```
 
-Load no data into the materialized view while you are creating it
+Load no data into the materialized view while you are creating it.
 ```sql
 create materialized view part_view as select * from part where machine_id between 400000 and 400010 with NO DATA;
 CREATE MATERIALIZED VIEW
@@ -1344,7 +1348,7 @@ HINT:  Use the REFRESH MATERIALIZED VIEW command.
 Time: 0.969 ms
 ```
 
-To load data into a materialized view
+To load data into a materialized view.
 ```sql
 testdb: refresh materialized view  part_view;
 REFRESH MATERIALIZED VIEW
@@ -1369,12 +1373,12 @@ Time: 269.896 ms
 Time: 2.937 ms
 ```
 When you refresh data for a materialized view, 
-PosgreSQL locks the entire table therefore you cannot query data against it.
+PostgreSQL locks the entire table therefore you cannot query data against it.
 
-REFRESH MATERIALIZED VIEW CONCURRENTLY view_name;
+> REFRESH MATERIALIZED VIEW CONCURRENTLY view_name;
 
 With CONCURRENTLY option, PostgreSQL creates a temporary updated version of the materialized view, 
-compares two versions, and performs INSERT and UPDATE only the differences.    
+compares two versions and performs INSERT and UPDATE only the differences.    
 
 You can query against the materialized view while it is being updated.    
 
@@ -1383,12 +1387,12 @@ One requirement for using CONCURRENTLY option is that the materialized view must
 ## Common Table Expressions (CTE's)
 ***
 
-Common Table Expressions or CTE's, can be thought of as defining temporary tables that exist just for one query. 
+Common Table Expressions or CTE's can be thought of as defining temporary tables that exist just for one query.   
 CTEs are similar to a view that is materialized only while that query is running and does not exist outside of that query. 
 
 + Allows large queries to be more readable.
-+ Simplifies complex queries and joins
-+ Postgres will evaluate the query inside the CTE and store the results in a temporary table
++ Simplifies complex queries and joins.
++ Postgres will evaluate the query inside the CTE and store the results in a temporary table.
 
 ```sql
 create table foo (id int, padding text);
@@ -1437,11 +1441,11 @@ select e.eid,e.ename,e.sal,e.dept,cte.ename from cmr_employee e LEFT JOIN emp_jo
 ```
 **Recursive CTE's:**
 
-CTEs allow themselves to be called until some condition is met.     
+CTEs which allow themselves to be called until some condition is met.     
 Recursive queries are typically used to deal with hierarchical or tree-structured data.
 
-+ Possible to express recurssion in sql.
-+ Works with the concept of working table(which is temporary table to store results)
++ Possible to express recursion in sql.
++ Works with the concept of working table (which is a temporary table to store results)
 
 Syntax:
 
@@ -1475,16 +1479,16 @@ select * from manager_tree;
 
 ## Window Function's
 ***
-Window functions are used to perform  a operation across a set of table rows which are related to current row.  
+Window functions are used to perform an operation across a set of table rows that are related to current row.  
 Comparable as of aggregate function but the rows retain their identities.   
-The window function is able to access more than just the current row. It doesnot reduce the number of rows in a window.
+The window function is able to access more than just the current row. It does not reduce the number of rows in a window.
 
 **PARTITION BY**
 
 The PARTITION BY clause divides rows into multiple groups or partitions to which the window function is applied. 
 Like the example below, we used the product group to divide the products into groups (or partitions).
 
-The PARTITION BY clause is optional.If you skip the PARTITION BY clause, the window function will treat the whole result set as a single partition.
+The PARTITION BY clause is optional. If you skip the PARTITION BY clause, the window function will treat the whole result set as a single partition.
 
 **ORDER BY**         
 
@@ -1519,7 +1523,7 @@ select * from products;
     1018 | AIRPODS           | 15000.00 |   4
     1019 | BOAT AIR DOPES    |  5000.00 |   4
 (14 rows)
-```	
+``` 
 ```sql
 select cat_name,AVG(price) from products p inner join category c on p.cid=c.cat_id group by cat_name;
   cat_name  |          avg          
@@ -1552,7 +1556,7 @@ select prod_id,prod_name,price,cat_name,AVG(price) OVER
     1008 | REAL ME           | 15000.00 | MOBILE     |    26500.000000000000
 (13 rows)
 ```
-All aggregate functions AVG(), MIN(), MAX(), SUM(), and COUNT() can be used as window functions.
+All aggregate functions AVG(), MIN(), MAX(), SUM() and COUNT() can be used as window functions.
 
 Window functions provided by Postgres: 
 
@@ -1581,7 +1585,7 @@ select prod_id,prod_name,cat_name,price,ROW_NUMBER () over ( PARTITION by cat_na
 (13 rows)
 ```
 
-**RANK**	                                                   
+**RANK**                                                     
 
 Rank the current row within its partition with gaps.
 
@@ -1608,7 +1612,7 @@ from products p INNER JOIN category c on p.cid=c.cat_id;
 (13 rows)
 
 
---Rank based on the price from the table.It gives the same rank for two rows with same price and then skips the immediate next number.
+--Rank based on the price from the table. It gives the same rank for two rows with the same price and then skips the immediate next number.
 ```
 **DENSE_RANK**
 
@@ -1758,7 +1762,7 @@ from products p inner join category c on p.cid=c.cat_id;
 
 The NTH_VALUE() function returns a value from the nth row in an ordered partition of a result set.
 
-NTH_VALUE() function to return all product names  together with the second most expensive product
+NTH_VALUE() function to return all product names together with the second most expensive product.
 
 ```SQL
 with temp as (select prod_id,prod_name,price,cat_name,
@@ -1790,9 +1794,9 @@ NTILE() function allows you to divide ordered rows in the partition into a speci
 
 These ranked groups are called buckets.
 
-The NTILE() function assigns each group a bucket number starting from 1
+The NTILE() function assigns each group a bucket number starting from 1.
 
-Following query divides the products price range in a particular category to 3 categories( assume low,med,high) 
+Following query divides the products price range in a particular category to 3 categories( assume low, med, high) 
 
 ```sql
 select prod_name,price,cat_name,NTILE(3) over (partition by cat_name  order by price) "Price range" from products p,category c where p.cid=c.cat_id;
@@ -1841,7 +1845,7 @@ select content  from news where content like '%Implement%';
 
 **to_tsvector**
 * Parses the document to get a list of tokens, reduces tokens to lexemes and produces a list of lexemes with their position as a tsvector. 
-* ‘ts’ in the tsvector represents ‘text search’. 
+* 'ts' in the tsvector represents ‘text search’. 
 
 **to_tsquery**  
 For querying the tsvector for certain words, phrases or complex queries separated by boolean operators & (AND), | (OR) or ! (NOT).
@@ -1867,7 +1871,7 @@ select * from part where to_tsvector('english',partdescr) @@ to_tsquery('Foil');
  300000 | Pno:300000 | Part:300000 | aluminium foils are used to make this part |          0
 
 ```
-We can use and (&),or(|), negation operator(!) in the to_tsquery to match with multiple words..
+We can use AND (&),OR (|), NEGATION operator(!) in the to_tsquery to match with multiple words..
 ```sql
 SELECT document_id, document_text FROM documents  
 WHERE document_tokens @@ to_tsquery('jump & quick');  
@@ -1912,17 +1916,17 @@ ts_rank
 ***
 
 The SQL standard defines four levels of transaction isolation.
-1. Serializble
+1. Serializable
 2. Repeatable read
 3. Read committed
 4. Read uncommitted
 
-* Every transaction has it’s isolation level set to one of these when it is created. The default level is “read committed”.
+* Every transaction has its isolation level set to one of these when it is created. The default level is “read committed”.
 * Note that the SQL standard also defines “read uncommitted”, which is not supported in Postgres. 
    You have to use the nearest, higher level of “read committed”.
 
 **Read Committed**   
-dirty read :-  
+dirty read:-  
 A transaction trying to read uncommitted data from another transaction (concurrent transaction)
 
 The read committed isolation level guarantees that dirty reads will never happen.
@@ -1932,26 +1936,26 @@ select * from t;
 ---+---
 (0 rows)
 
-T1:	BEGIN;
-T1:	insert into t values(1,100);	
-T1:	select * from t;																		
-	a |  b  						
-	---+-----						
-	1 | 100							
-	(1 row)	
-                                            T2:	select * from t;		
+T1: BEGIN;
+T1: insert into t values(1,100);  
+T1: select * from t;                                    
+  a |  b              
+  ---+-----           
+  1 | 100             
+  (1 row) 
+                                            T2: select * from t;    
                                                     a |  b  
                                                     ---+-----
                                                         | 
-                                                    (0 row)	
+                                                    (0 row) 
 
-T1:	commit;						
+T1: commit;           
 
-                                            T2:	select * from t;				
+                                            T2: select * from t;        
                                                     a |  b  
                                                     ---+-----
                                                     1 | 100
-                                                    (1 row)						
+                                                    (1 row)           
 
 ```
  The second transaction could not read the first transaction’s as-yet-uncommitted data. 
@@ -1960,7 +1964,7 @@ T1:	commit;
 
  **Repeatable read**
  
- nonrepeatable read :-   
+ nonrepeatable read:-   
  These happen when a transaction reads a row, and then reads it again a bit later but gets a different result – 
  because the row was updated in between by another transaction. 
  
@@ -1968,15 +1972,15 @@ T1:	commit;
  
 nonrepeatable read example
 ```sql
-T1:	begin;
-	BEGIN
+T1: begin;
+  BEGIN
 T1: select * from t;
         a |  b  
         ---+-----
         1 | 100
         (1 row)
 
-                                            T2:	begin;
+                                            T2: begin;
                                                 BEGIN
                                             T2: select * from t;
                                                     a |  b  
@@ -1985,23 +1989,23 @@ T1: select * from t;
                                                     (1 row)
 
 T1: update t set b=200 where a=1;
-	UPDATE 1
+  UPDATE 1
 T1: select * from t;
         a |  b  
         ---+-----
         1 | 200
         (1 row)
 
-                                            T2:	select * from t;
+                                            T2: select * from t;
                                                     a |  b  
                                                     ---+-----
                                                     1 | 100
                                                     (1 row)
 
-T1:	commit;
-	COMMIT
+T1: commit;
+  COMMIT
 
-                                            T2:	select * from t;
+                                            T2: select * from t;
                                                     a |  b  
                                                     ---+-----
                                                     1 | 200
@@ -2009,40 +2013,40 @@ T1:	commit;
 ```
 With  Repeatable read isolation
 ```sql
-T1:	begin transaction isolation level repeatable read;
-	BEGIN
-T1:	select * from t;
+T1: begin transaction isolation level repeatable read;
+  BEGIN
+T1: select * from t;
         a |  b  
         ---+-----
         1 | 100
         (1 row)
 
-                                            T2:	begin;
+                                            T2: begin;
                                                 BEGIN
-                                            T2:	select * from t;
+                                            T2: select * from t;
                                                     a |  b  
                                                     ---+-----
                                                     1 | 100
                                                     (1 row)
 
-                                            T2:	update t set b=200 where a=1;
+                                            T2: update t set b=200 where a=1;
                                                 UPDATE 1
-                                            T2:	select * from t;
+                                            T2: select * from t;
                                                     a |  b  
                                                     ---+-----
                                                     1 | 200
                                                     (1 row)
-T1:	select * from t;
+T1: select * from t;
     a |  b  
     ---+-----
     1 | 100
     (1 row)
 
 
-                                            T2:	commit;
+                                            T2: commit;
                                                 COMMIT
                                                                                     
-T1:	select * from t;
+T1: select * from t;
     a |  b  
     ---+-----
     1 | 100
@@ -2052,47 +2056,47 @@ T1:	select * from t;
 lost updates:-  
  Updates performed in one transaction can be “lost”, or overwritten by another transaction that happens to run concurrently
 
- Serialization provides the highest level of safety
+ Serialization provides the highest level of safety.
 
 Lost update example
 ```sql
-T1:	begin;
-	BEGIN
-T1:	select * from t;
+T1: begin;
+  BEGIN
+T1: select * from t;
         a |  b  
         ---+-----
         1 | 100
         (1 row)
 
-                                            T2:	begin;
+                                            T2: begin;
                                                 BEGIN
-                                            T2:	select * from t;
+                                            T2: select * from t;
                                                     a |  b  
                                                     ---+-----
                                                     1 | 100
                                                     (1 row)
-T1:	update t set b=200 where a=1;
-	UPDATE 1
-								            T2:	update t set b=300 where a=1;
-T1:	commit;
-	COMMIT												
-								            T2:	UPDATE 1	
+T1: update t set b=200 where a=1;
+  UPDATE 1
+                            T2: update t set b=300 where a=1;
+T1: commit;
+  COMMIT                        
+                            T2: UPDATE 1  
 
-                                            T2:	commit;
-											    COMMIT
+                                            T2: commit;
+                          COMMIT
 
-T1:	select * from t;
+T1: select * from t;
         a |  b  
         ---+-----
         1 | 300
         (1 row)
 
-                                            T2:	select * from t;
+                                            T2: select * from t;
                                                     a |  b  
                                                     ---+-----
                                                     1 | 300
-                                                    (1 row)	
-```		
+                                                    (1 row) 
+```   
 
 Here the second transaction’s UPDATE blocks, because PostgreSQL places a lock to prevent another update until the first transaction is finished.    
 
@@ -2100,38 +2104,38 @@ However, the first transaction’s change is lost, because the second one “ove
 
 To avoid that we use serializable
 ```sql
-T1:	begin;
-	BEGIN
-T1:	select * from t;
+T1: begin;
+  BEGIN
+T1: select * from t;
         a |  b  
         ---+-----
         1 | 100
         (1 row)
 
-                                            T2:	begin transaction isolation level serializable;
+                                            T2: begin transaction isolation level serializable;
                                                 BEGIN
-                                            T2:	select * from t;
+                                            T2: select * from t;
                                                     a |  b  
                                                     ---+-----
                                                     1 | 100
                                                     (1 row)
-T1:	update t set b=200 where a=1;
-	UPDATE 1
-								            T2:	update t set b=300 where a=1;
+T1: update t set b=200 where a=1;
+  UPDATE 1
+                            T2: update t set b=300 where a=1;
 
-T1:	commit;
-	COMMIT												
-								            T2:	ERROR:  could not serialize access due to concurrent update                                                    
+T1: commit;
+  COMMIT                        
+                            T2: ERROR:  could not serialize access due to concurrent update                                                    
 ```
 At this level, the commit of the first transaction fails.   
 The first transaction’s actions were based on facts that were rendered invalid by the time it was about to commit.
 ## Locking
 ***
-To prevent situations where mutliple users want to update same data at same time, locks are used to control this situation.
+To prevent situations where multiple users want to update the same data at the same time, locks are used to control this situation.
 
 Postgres we have 3 mechanisms of locking:    
- * table-level, row-level and advisory locks.    
- * Table and row level locks can be explicit or implicit. Advisory locks are mainly explicit.    
+ * table-level, row-level, and advisory locks.    
+ * Table and row-level locks can be explicit or implicit. Advisory locks are mainly explicit.    
  * Explicit locks are acquired on explicit user requests (with special queries) and implicit are acquired by standard SQL commands.         
   
 **Table Level locks**   
@@ -2141,22 +2145,22 @@ Most of the table-level locks are acquired by built-in SQL commands, but they ca
  LOCK [ TABLE ] name IN [ lock_mode_name ] mode;
  
  **ACCESS SHARE** – 
- all queries that only read table acquire this lock.
+ all queries that only read the table acquire this lock.
  
  **ROW SHARE** – 
- The SELECT FOR UPDATE and SELECT FOR SHARE commands acquire this lock on target table.
+ The SELECT FOR UPDATE and SELECT FOR SHARE commands acquire this lock on the target table.
  
  **ROW EXCLUSIVE** – 
- The UPDATE, INSERT and DELETE commands acquire this lock on target table , all queries that modify table acquire this lock.
+ The UPDATE, INSERT and DELETE commands acquire this lock on the target table, all queries that modify table acquire this lock.
  
  **SHARE UPDATE EXCLUSIVE** – 
  The VACUUM (without FULL), ANALYZE, CREATE INDEX CONCURRENTLY, and some forms of ALTER TABLE commands acquire this lock.
  
  **EXCLUSIVE** – 
- This lock mode allows only reads to process in parallel with transaction that acquired this lock.
+ This lock mode allows only reads to process in parallel with a transaction that acquired this lock.
  
  **ACCESS EXCLUSIVE** – 
- The ALTER TABLE, DROP TABLE, TRUNCATE, REINDEX, CLUSTER, and VACUUM FULL commands acquire lock on table referenced in query. This mode is default mode of LOCK command.
+ The ALTER TABLE, DROP TABLE, TRUNCATE, REINDEX, CLUSTER, and VACUUM FULL commands acquire lock on a table referenced in query. This mode is the default mode of the LOCK command.
  
  |              Runs concurrently with              | SELECT | INSERT/UPDATE/DELETE | CREATE INDEX / CONC/ VACUUM/ ANALYZE | CREATE INDEX | CREATE TRIGGER | ALTER TABLE/ DROP TABLE/ TRUNCATE/ VACUUM / FULL |
 |:------------------------------------------------:|:------:|:--------------------:|:------------------------------------:|:------------:|:--------------:|:------------------------------------------------:|
@@ -2188,7 +2192,7 @@ Most of the table-level locks are acquired by built-in SQL commands, but they ca
 Row-level locks: exclusive or share lock. 
 
 ***EXCLUSIVE LOCK***   
-* An exclusive row level lock is automatically acquired when row is updated or deleted.
+* An exclusive row-level lock is automatically acquired when row is updated or deleted.
 * Row-level locks don’t block data querying, they block just writes to the same row.
  * Exclusive row-level lock can be acquired explicitly without the actual changing of the row with SELECT FOR UPDATE command. 
 ```sql
@@ -2200,23 +2204,23 @@ select * from t;
     (2 rows)
 
 
-T1:	begin;
-	BEGIN
-	select * from t where a=2 for update;
+T1: begin;
+  BEGIN
+  select * from t where a=2 for update;
         a |  b   
         ---+------
         2 | 1000
         (1 row)
 
-                                                T2:	update t set b=2000 where a=2;
+                                                T2: update t set b=2000 where a=2;
 
 Row with a=2 is under lock
 table t cannot update that row(a=2) until T1 is committed or rollback.
 
 T1: commit;
-	COMMIT
-						                        T2:	UPDATE 1
-							
+  COMMIT
+                                    T2: UPDATE 1
+              
 ```
 ***SHARE LOCK***
 * Share row-level lock can be acquired with SELECT FOR SHARE command. 
@@ -2233,29 +2237,29 @@ select * from t;
     1 |  200
     (2 rows)
 
-T1:	begin;
-	BEGIN
+T1: begin;
+  BEGIN
 
-T1:	update t set b=100 where a=1;
-	UPDATE 1
- 												
-                                                        T2:	begin;
+T1: update t set b=100 where a=1;
+  UPDATE 1
+                        
+                                                        T2: begin;
                                                             BEGIN
 
                                                             update t set b=1000 where a=2;
                                                             UPDATE 1
                                                                     
-                                                        T2:	update t set b=500 where a=1;
+                                                        T2: update t set b=500 where a=1;
                                                         
-T1:	update t set b=5000 where a=2;
+T1: update t set b=5000 where a=2;
 
-	ERROR:  deadlock detected
-	DETAIL:  Process 8540 waits for ShareLock on transaction 1330; blocked by process 8547.
-	Process 8547 waits for ShareLock on transaction 1329; blocked by process 8540.
-	HINT:  See server log for query details.
-	CONTEXT:  while updating tuple (0,14) in relation "t"
+  ERROR:  deadlock detected
+  DETAIL:  Process 8540 waits for ShareLock on transaction 1330; blocked by process 8547.
+  Process 8547 waits for ShareLock on transaction 1329; blocked by process 8540.
+  HINT:  See server log for query details.
+  CONTEXT:  while updating tuple (0,14) in relation "t"
 
-								                        T2:	UPDATE 1
+                                        T2: UPDATE 1
 
 ```  
 ***ADVISORY LOCKS***
@@ -2267,10 +2271,11 @@ These are called advisory locks.
  
 ## Indexes:
 Indexes are special lookup tables that the database search engine can use to speed up data retrieval.
-Simply put, an index is a pointer to data in a table. An index in a database is very similar to an index in the back of a book.
-For example, if you want to reference all pages in a book that discusses a certain topic,you have to first refer to the index, which lists all topics alphabetically and then refer to one or more specific page numbers.
+Simply put, an index is a pointer to data in a table.   
+An index in a database is very similar to an index in the back of a book.
+For example, if you want to reference all pages in a book that discusses a certain topic, you have to first refer to the index, which lists all topics alphabetically and then refer to one or more specific page numbers.
 
-An index helps to speed up SELECT queries and WHERE clauses; however, it slows down data input
+An index helps to speed up SELECT queries and WHERE clauses; however,  it slows down data input
  
 
 PostgreSQL provides several index types:        
@@ -2279,12 +2284,12 @@ PostgreSQL provides several index types:
 + GiST 
 + GIN
            
-Each index type uses a different algorithm that is best suited to different types of queries. By default,the CREATE INDEX command creates B-tree indexes, which fit the most common situations.
+Each index type uses a different algorithm that is best suited to different types of queries. By default, the CREATE INDEX command creates B-tree indexes, which fit the most common situations.
 
 **B-Trees**       
-B Trees can handle equality and range queries on data.Using postgres whenever an index column is invovled in a comparison (<,>,<=,>=,=), creates a tree which is balanced and even.
+B Trees can handle equality and range queries on data.Using Postgres whenever an index column is involved in a comparison (<,>,<=,>=,=), creates a tree which is balanced and even.
 
-+ If the column is unique then by default b-tree will be assgined to column.       
++ If the column is unique then by default b-tree will be assigned to the column.       
 + They can operate against all datatypes, and can also be used to retrieve NULL values. 
 + B-tree indexes can also be used to retrieve data in sorted order.
 
@@ -2347,7 +2352,7 @@ explain select * from part where partname='Part 100000';
 Time: 1.297 ms
 ```
 
-Fetching the result using the index on the column..
+Fetching the result using the index on the column...
 
 ```sql
 ---create index on the column 
@@ -2377,7 +2382,7 @@ We can see the select command with index on the column is fetching results fast 
 
 **Hash Index**
 
-Hash Index are only useful for equality comparison.
+Hash Index is only useful for equality comparison.
 They are not transaction safe, need to be manually rebuilt after crashes
 
 ```sql
@@ -2420,7 +2425,7 @@ Time: 125.282 ms
 ```
 **Generalized Inverted Indexes(GIN)**
 
-Generalized Inverted Indexes, commonly referred to as GIN,are most useful when you have data types that contain multiple values in a single column.
+Generalized Inverted Indexes, commonly referred to as GIN, are most useful when you have data types that contain multiple values in a single column.
 
 “GIN is designed for handling cases where the items to be indexed are composite values, and the queries to be handled by the index need to search for element values that appear within the composite items.
 
@@ -2479,7 +2484,7 @@ Time: 54.504 ms
 
 What is gin_trgm_ops?         
 This option tells Postgres to index using trigrams over our selected columns.    
-A trigram is a data structure that hold 3 letters of a word.      
+A trigram is a data structure that holds 3 letters of a word.      
 Essentially, Postgres will break down each text column down into trigrams and use that in the index when we search against it.
 
 
@@ -2503,9 +2508,9 @@ CREATE TABLE
 Time: 133.405 ms
 ```
 
-Each task should hold only one resource at time and no other resource should be assigned to same task in the given period for allocated reource
+Each task should hold only one resource at time and no other resource should be assigned to the same task in the given period for allocated resource
 
-To make non overlapping rows with a constraint..
+To make non-overlapping rows with a constraint...
 
 ```sql
 create extension btree_gist ;
@@ -2558,7 +2563,7 @@ Time: 1.127 ms
 **SP-GiST**
 
 SP-GiST is an abbreviation for space-partitioned GiST.  
-SP-GiST supports partitioned search trees, which facilitate development of a wide range of different non-balanced data structures,such as quad-trees, k-d trees, and suffix trees (tries).
+SP-GiST supports partitioned search trees, which facilitate the development of a wide range of different non-balanced data structures, such as quad-trees, k-d trees, and suffix trees (tries).
 
 + The common feature of these structures is that they repeatedly divide the search space into partitions that need not be of equal size.
 
@@ -2656,7 +2661,7 @@ explain select customer_id,first_name,email from customer where active=0;
 ```
 **FUNCTIONAL INDEXES**  
 For a functional index, an index is defined on the result of a function applied to one or more columns of a single table
-
+ 
 The customer table has a B-Tree index defined for the last_name column.
 ```sql
 explain select customer_id,first_name,last_name from customer where last_name='Purdy';
@@ -2677,7 +2682,7 @@ explain select customer_id,first_name,last_name from customer where LOWER(last_n
 ```
 When executing the above query PostgreSQL could not utilize the index for lookup
 
-To improve this query, you can define an functional index as follows
+To improve this query, you can define a functional index as follows
 ```sql
 create index customer_functionalindex_lastname on customer(LOWER(last_name));
 CREATE INDEX
@@ -2694,7 +2699,7 @@ explain select customer_id,first_name,last_name from customer where LOWER(last_n
 Besides functions like UPPER/LOWER you can also index expressions like A + B and even use user-defined functions in the index definition.
 
 Functions that cannot be “indexed” are random number generators and functions that depend on environment variables and
-functions that are non deterministic (i.e the result of the function call is not fully determined by its parameters.    
+functions that are non-deterministic (i.e the result of the function call is not fully determined by its parameters.    
 Only functions that always return the same result for the same parameters are considered to be deterministic )
 
 
@@ -2703,7 +2708,7 @@ Only functions that always return the same result for the same parameters are co
 A trigger is a named database object that is associated with a table, 
 and it activates when a particular event (e.g. an insert, update or delete) occurs for the table/views.   
 
-* Useful if the database is accessed by various applications and for cross functionality            
+* Useful if the database is accessed by various applications and for cross-functionality            
 * Used for maintaining the integrity of the information on the database. 
 
 Trigger Types
@@ -2853,7 +2858,7 @@ Some of the uses Of Triggers
 
 2.    Forcing Check Constraint: You can create a trigger by which you can check the constraints before applying the transaction to the table.
 
-3.   Automatic Population: By using triggers you can also auto populate tables fields by new transactions records manipulation.
+3.   Automatic Population: By using triggers you can also auto-populate tables fields by new transactions records manipulation.
 
 
 
