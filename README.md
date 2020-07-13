@@ -867,7 +867,7 @@ Reference one or more columns in the outer SQL statement.The subquery is known a
 Display the employees whose salary is more than the average salary in each department.
 
 ```sql
-select * from cmr_employee c where sal>=(select coalesce(avg(sal),0) from cmr_employee e where e.dept=c.dept);
+select * from cmr_employee c where sal>=(select avg(coalesce(sal,0)) from cmr_employee e where e.dept=c.dept);
 	
     eid  | ename |    sal    | dept | mgr_id 
 	------+-------+-----------+------+--------
