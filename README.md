@@ -820,6 +820,15 @@ Returns one or more rows. (multiple row comparison operators like IN, ANY, ALL a
 When **ALL** is used it should match with everything in inner query.    
 When **ANY** is used atleast one of them should be matched.
 
+
+```
+SELECT columns
+FROM table
+WHERE column-name comparison-operator ANY/ALL
+(sub-query);
+```
+
+
 Display the employee who are managers
 ```sql	
 select ename from cmr_employee where eid in(select distinct mgr_id from cmr_employee );
